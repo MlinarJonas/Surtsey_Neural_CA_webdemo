@@ -8,6 +8,9 @@ import { YearHUD } from "./YearHUD";
 interface IslandViewProps {
   /** Hex colors, parallel to gridStore.speciesNames. */
   speciesColors: string[];
+  /** Base (unshrunk) displayed pixel size of one grid cell — the actual
+   * rendered size can be smaller on narrow viewports, see .canvas-stack's
+   * max-width/aspect-ratio in App.css. */
   cellSize?: number;
 }
 
@@ -18,6 +21,13 @@ interface IslandViewProps {
  * cursor ghost preview + glow ring on top. GridCanvas, HillshadeLayer, and
  * BrushCursorLayer don't know about each other — this component is the only
  * place that knows the full stack.
+ *
+ * Sizing: this wrapper sets an explicit base width plus aspect-ratio, and
+ * every child (canvases via CSS, the ring/glyph via % position here) is
+ * expressed relative to that box rather than in absolute pixels — so the
+ * whole stack shrinks correctly together on a narrow viewport instead of
+ * only the width shrinking while height stays fixed (which is what a fixed
+ * pixel height would do, since CSS max-width has no effect on height).
  */
 export function IslandView({ speciesColors, cellSize = 3 }: IslandViewProps) {
   const { gridW, gridH } = gridStore;
@@ -28,25 +38,34 @@ export function IslandView({ speciesColors, cellSize = 3 }: IslandViewProps) {
 
   // The ring is a coarse circular approximation of the brush's true (circular,
   // integer-cell) footprint — decorative glow only; BrushCursorLayer's
-  // per-cell canvas fill is the pixel-exact preview.
+  // per-cell canvas fill is the pixel-exact preview. Percentages, not pixels:
+  // width/height use gridW/gridH as their respective bases (not the same
+  // number) specifically so the ring renders as a circle, not an ellipse,
+  // regardless of the container's current (possibly shrunk) size.
   const ringColor = tool === "erase" ? "var(--danger)" : (speciesColors[selectedSpecies] ?? "#fff");
-  const diameter = (2 * brushRadius + 1) * cellSize;
-  const ringX = hoveredCell ? (hoveredCell.col + 0.5) * cellSize - diameter / 2 : 0;
-  const ringY = hoveredCell ? (hoveredCell.row + 0.5) * cellSize - diameter / 2 : 0;
+  const ringWidthPct = ((2 * brushRadius + 1) / gridW) * 100;
+  const ringHeightPct = ((2 * brushRadius + 1) / gridH) * 100;
+  const pointXPct = hoveredCell ? ((hoveredCell.col + 0.5) / gridW) * 100 : 0;
+  const pointYPct = hoveredCell ? ((hoveredCell.row + 0.5) / gridH) * 100 : 0;
 
   return (
-    <div className="canvas-stack" style={{ width: gridW * cellSize, height: gridH * cellSize }}>
-      <HillshadeLayer cellSize={cellSize} />
-      <GridCanvas speciesColors={speciesColors} cellSize={cellSize} />
-      <BrushCursorLayer speciesColors={speciesColors} cellSize={cellSize} />
+    <div
+      className="canvas-stack"
+      style={{ width: gridW * cellSize, aspectRatio: `${gridW} / ${gridH}` }}
+    >
+      <HillshadeLayer />
+      <GridCanvas speciesColors={speciesColors} />
+      <BrushCursorLayer speciesColors={speciesColors} />
       <YearHUD />
       {hoveredCell && (
         <div
           className="brush-ring"
           style={{
-            width: diameter,
-            height: diameter,
-            transform: `translate(${ringX}px, ${ringY}px)`,
+            left: `${pointXPct}%`,
+            top: `${pointYPct}%`,
+            width: `${ringWidthPct}%`,
+            height: `${ringHeightPct}%`,
+            transform: "translate(-50%, -50%)",
             borderColor: ringColor,
             boxShadow: `0 0 8px 1px ${ringColor}`,
           }}
@@ -59,7 +78,9 @@ export function IslandView({ speciesColors, cellSize = 3 }: IslandViewProps) {
           height={16}
           viewBox="0 0 16 16"
           style={{
-            transform: `translate(${(hoveredCell.col + 0.5) * cellSize - 8}px, ${(hoveredCell.row + 0.5) * cellSize - 8}px)`,
+            left: `${pointXPct}%`,
+            top: `${pointYPct}%`,
+            transform: "translate(-50%, -50%)",
           }}
         >
           <line x1={3} y1={3} x2={13} y2={13} stroke="var(--danger)" strokeWidth={2} strokeLinecap="round" />

@@ -5,8 +5,6 @@ import { useUIStore } from "../state/uiStore";
 interface GridCanvasProps {
   /** Hex colors, parallel to gridStore.speciesNames. */
   speciesColors: string[];
-  /** Displayed pixel size of one grid cell. */
-  cellSize?: number;
 }
 
 // Deep ocean blue — deliberately distinct from every species hue in the
@@ -66,7 +64,7 @@ function compositeOver(
   ];
 }
 
-export function GridCanvas({ speciesColors, cellSize = 3 }: GridCanvasProps) {
+export function GridCanvas({ speciesColors }: GridCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Read reactively (not via getState()) — a layer/mode toggle should redraw
   // immediately, not wait for the next paint stroke.
@@ -84,8 +82,10 @@ export function GridCanvas({ speciesColors, cellSize = 3 }: GridCanvasProps) {
     const { gridH, gridW } = gridStore;
     canvas.width = gridW;
     canvas.height = gridH;
-    canvas.style.width = `${gridW * cellSize}px`;
-    canvas.style.height = `${gridH * cellSize}px`;
+    // Display size is CSS-driven (.canvas-stack canvas { width:100%; height:100% })
+    // rather than set here — the wrapper's aspect-ratio (see IslandView) is what
+    // keeps this proportionally correct at any responsive scale, including on
+    // narrow viewports where it must shrink below its native pixel size.
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -272,7 +272,7 @@ export function GridCanvas({ speciesColors, cellSize = 3 }: GridCanvasProps) {
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointerleave", onPointerLeaveCanvas);
     };
-  }, [speciesColors, cellSize, hiddenSpecies, renderMode]);
+  }, [speciesColors, hiddenSpecies, renderMode]);
 
   return <canvas ref={canvasRef} className="grid-canvas" />;
 }

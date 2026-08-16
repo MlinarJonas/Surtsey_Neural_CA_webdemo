@@ -5,7 +5,6 @@ import { useUIStore } from "../state/uiStore";
 interface BrushCursorLayerProps {
   /** Hex colors, parallel to gridStore.speciesNames. */
   speciesColors: string[];
-  cellSize?: number;
 }
 
 const CURSOR_ALPHA = 0.35;
@@ -23,7 +22,7 @@ function hexToRgb(hex: string): [number, number, number] {
  * from actual behavior. Purely visual — pointer-events:none; GridCanvas
  * (stacked beneath) keeps handling all pointer interaction.
  */
-export function BrushCursorLayer({ speciesColors, cellSize = 3 }: BrushCursorLayerProps) {
+export function BrushCursorLayer({ speciesColors }: BrushCursorLayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hoveredCell = useUIStore((s) => s.hoveredCell);
   const tool = useUIStore((s) => s.tool);
@@ -37,8 +36,7 @@ export function BrushCursorLayer({ speciesColors, cellSize = 3 }: BrushCursorLay
     const { gridH, gridW } = gridStore;
     canvas.width = gridW;
     canvas.height = gridH;
-    canvas.style.width = `${gridW * cellSize}px`;
-    canvas.style.height = `${gridH * cellSize}px`;
+    // Display size is CSS-driven — see GridCanvas's equivalent comment.
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -58,7 +56,7 @@ export function BrushCursorLayer({ speciesColors, cellSize = 3 }: BrushCursorLay
       data[o + 3] = Math.round(CURSOR_ALPHA * 255);
     });
     ctx.putImageData(imageData, 0, 0);
-  }, [hoveredCell, tool, selectedSpecies, brushRadius, speciesColors, cellSize]);
+  }, [hoveredCell, tool, selectedSpecies, brushRadius, speciesColors]);
 
   return <canvas ref={canvasRef} className="brush-cursor-canvas" />;
 }
