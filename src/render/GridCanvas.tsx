@@ -17,17 +17,6 @@ const OCEAN_RGB: readonly [number, number, number] = [27, 52, 84];
  * rendering effect — gridStore.erase() itself stays instant/synchronous. */
 const FADE_DURATION_MS = 400;
 
-/** Perceptual display curve for biotic values: raw values are a genuine [0,1]
- * probability, but rendering them at literal alpha=raw makes low-to-mid
- * presence (exactly the interesting frontier/dispersal range) nearly
- * invisible against the terrain. Exponent < 1 boosts low values more than
- * high ones while leaving the 0->0 and 1->1 endpoints fixed — this only
- * affects the display, never gridStore's actual biotic values. */
-const ALPHA_DISPLAY_GAMMA = 0.6;
-function displayAlpha(raw: number): number {
-  return raw > 0 ? Math.pow(raw, ALPHA_DISPLAY_GAMMA) : 0;
-}
-
 interface FadeEntry {
   cellIdx: number;
   species: number;
@@ -114,12 +103,16 @@ export function GridCanvas({ speciesColors }: GridCanvasProps) {
           a = 1;
         }
 
+        // Alpha is the raw biotic value, exactly — no perceptual boost curve.
+        // A raw^0.6-style curve was tried and reverted: it renders low
+        // suitability values at misleadingly high opacity (e.g. 0.2 true
+        // value showing at 36% instead of 20%), which matters for a
+        // scientific tool where visual intensity should track the real number.
         const alphaAt = (s: number): number => {
           const trueAlpha = biotic[s][i];
           // max(), not replace: if the cell was repainted while an old fade
           // is still in flight, the fresh (higher) true value wins outright.
-          const raw = override && override.species === s ? Math.max(trueAlpha, override.alpha) : trueAlpha;
-          return displayAlpha(raw);
+          return override && override.species === s ? Math.max(trueAlpha, override.alpha) : trueAlpha;
         };
 
         if (renderMode === "dominant") {
