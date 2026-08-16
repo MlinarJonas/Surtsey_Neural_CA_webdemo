@@ -31,6 +31,24 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 /**
+ * Lerps a species' color from white (mix=0) to its full saturated hue (mix=1)
+ * — the same raw value already used for alpha also drives this, so a faint
+ * cell is faint on two channels at once (pale AND mostly-transparent), and a
+ * strong cell is vivid on both (deep AND opaque). Inspired by the training
+ * pipeline's export_species_gifs (src/nca/data_loader.py): it colors
+ * predictions with a full sequential colormap (viridis) rather than a flat
+ * hue at varying opacity, which reads as more alive without being dishonest
+ * about magnitude — alpha itself stays exactly linear in the raw value.
+ */
+function richColor(base: readonly [number, number, number], mix: number): [number, number, number] {
+  return [
+    255 + (base[0] - 255) * mix,
+    255 + (base[1] - 255) * mix,
+    255 + (base[2] - 255) * mix,
+  ];
+}
+
+/**
  * Porter-Duff "over": composites a source (cr,cg,cb,alpha) onto an
  * accumulated destination (dr,dg,db,dAlpha), returning the new accumulated
  * (color, alpha), all in [0,1] except the 8-bit color channels. Reduces
@@ -131,7 +149,7 @@ export function GridCanvas({ speciesColors }: GridCanvasProps) {
             }
           }
           if (bestSpecies >= 0) {
-            const [cr, cg, cb] = rgbColors[bestSpecies];
+            const [cr, cg, cb] = richColor(rgbColors[bestSpecies], bestValue);
             [r, g, b, a] = compositeOver(r, g, b, a, cr, cg, cb, bestValue);
           }
         } else {
@@ -139,7 +157,7 @@ export function GridCanvas({ speciesColors }: GridCanvasProps) {
             if (hiddenSpecies.has(s)) continue;
             const alpha = alphaAt(s);
             if (alpha <= 0) continue;
-            const [cr, cg, cb] = rgbColors[s];
+            const [cr, cg, cb] = richColor(rgbColors[s], alpha);
             [r, g, b, a] = compositeOver(r, g, b, a, cr, cg, cb, alpha);
           }
         }
