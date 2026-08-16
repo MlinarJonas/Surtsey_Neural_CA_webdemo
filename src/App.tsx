@@ -7,6 +7,9 @@ import { Toolbar } from "./ui/Toolbar";
 import { PlaybackControls } from "./ui/PlaybackControls";
 import { CellInspector } from "./ui/CellInspector";
 import { AbundanceChart } from "./ui/AbundanceChart";
+import { CompositionChart } from "./ui/CompositionChart";
+import { ExtentChart } from "./ui/ExtentChart";
+import { SuitabilityChart } from "./ui/SuitabilityChart";
 import { ModelSelector, type ModelOption } from "./ui/ModelSelector";
 import { IslandMark, WarningIcon } from "./ui/icons";
 import { simulationEngine } from "./sim/engine";
@@ -197,6 +200,13 @@ export default function App() {
             abioticChannelNames={load.abioticChannelNames}
           />
           <AbundanceChart speciesNames={load.speciesNames} speciesColors={colors} />
+          <CompositionChart speciesNames={load.speciesNames} speciesColors={colors} />
+          <ExtentChart speciesNames={load.speciesNames} speciesColors={colors} />
+          <SuitabilityChart
+            speciesNames={load.speciesNames}
+            speciesColors={colors}
+            abioticChannelNames={load.abioticChannelNames}
+          />
         </aside>
       </div>
     </div>

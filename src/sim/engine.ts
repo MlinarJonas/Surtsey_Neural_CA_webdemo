@@ -6,7 +6,16 @@ export interface AbundancePoint {
   step: number;
   /** Sum of biotic values over land cells, per species (parallel to speciesNames). */
   abundance: number[];
+  /** Count of land cells with biotic > OCCUPIED_THRESHOLD, per species. */
+  extent: number[];
+  /** Sum of each abiotic channel's value over that species' occupied cells
+   * (species-major, channel-minor) — divide by extent[s] for the mean. */
+  abioticSum: number[][];
 }
+
+/** A cell counts as "occupied" by a species above this biotic value — mirrors
+ * the Python pipeline's det_history > 0.1 occupancy convention. */
+const OCCUPIED_THRESHOLD = 0.1;
 
 export interface EngineSnapshot {
   /** True only during continuous Play — a single Step's own animation does not
@@ -80,12 +89,34 @@ class SimulationEngine {
     });
   }
 
+  /** Single pass over land cells computing, per species: the occupied-cell
+   * count (extent) and the sum of each abiotic channel's value over those
+   * occupied cells (abioticSum — divide by extent for the mean). Combined
+   * into one loop rather than separate passes since both are needed together
+   * for every history point. */
+  private computeExtentAndAbioticSum(state: SimState): { extent: number[]; abioticSum: number[][] } {
+    const { landMask, abiotic } = gridStore;
+    const extent = state.biotic.map(() => 0);
+    const abioticSum = state.biotic.map(() => abiotic.map(() => 0));
+    for (let i = 0; i < landMask.length; i++) {
+      if (landMask[i] !== 1) continue;
+      for (let s = 0; s < state.biotic.length; s++) {
+        if (state.biotic[s][i] <= OCCUPIED_THRESHOLD) continue;
+        extent[s]++;
+        for (let c = 0; c < abiotic.length; c++) abioticSum[s][c] += abiotic[c][i];
+      }
+    }
+    return { extent, abioticSum };
+  }
+
   /** Takes the "reset point" snapshot and seeds history[0] the first time a
    * run/step starts after a reset/clear. No-op on subsequent calls. */
   private ensureStarted(): void {
     if (gridStore.hasInitialSnapshot) return;
     gridStore.snapshotInitialCondition();
-    this.history = [{ step: 0, abundance: this.computeAbundance(gridStore.getSimState()) }];
+    const state = gridStore.getSimState();
+    const { extent, abioticSum } = this.computeExtentAndAbioticSum(state);
+    this.history = [{ step: 0, abundance: this.computeAbundance(state), extent, abioticSum }];
   }
 
   /** Runs exactly one model.step() (one sub-step), using the current year's
@@ -100,7 +131,8 @@ class SimulationEngine {
       this.subStep = 0;
       this.stepCount++;
       gridStore.setYear(gridStore.yearStart + this.stepCount);
-      this.history.push({ step: this.stepCount, abundance: this.computeAbundance(next) });
+      const { extent, abioticSum } = this.computeExtentAndAbioticSum(next);
+      this.history.push({ step: this.stepCount, abundance: this.computeAbundance(next), extent, abioticSum });
       if (this.mode === "stepping") {
         this.stopTicker();
         this.mode = "idle";
