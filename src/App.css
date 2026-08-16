@@ -5,13 +5,24 @@
 }
 
 .app header {
-  padding: 12px 20px;
+  padding: var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--border);
   background: var(--panel-bg);
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.brand .island-mark {
+  flex: none;
+}
+
 .app header h1 {
   font-size: 20px;
+  letter-spacing: 0.01em;
 }
 
 .app header .epoch {
@@ -29,12 +40,38 @@
 .app-body aside {
   width: 240px;
   flex: none;
-  padding: 16px;
+  padding: var(--space-4);
   background: var(--panel-bg);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-5);
   overflow-y: auto;
+}
+
+/* Each panel (Toolbar, PlaybackControls, ModelSelector, SpeciesPalette,
+   CellInspector, AbundanceChart) is a bare div directly inside an aside —
+   targeting structurally means every panel gets card grouping for free,
+   including ModelSelector's conditional `return null` (no empty card). */
+.app-body aside > div {
+  padding: var(--space-4);
+  background: var(--panel-bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Chrome recedes, content stands out: every panel title gets the same
+   restrained treatment instead of matching body-text weight. Distinguished
+   from .cell-inspector h3 (a subsection label) by contrast, not size — h2
+   stays full-strength text with a hairline rule; h3 stays muted, no rule. */
+.app-body aside h2 {
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .tools-panel {
@@ -53,8 +90,17 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: var(--space-5);
   background: var(--bg);
+}
+
+.viewport-frame {
+  padding: var(--space-4);
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  max-width: 100%;
 }
 
 /* Below this width, the two 240px fixed-width sidebars alone (480px) exceed
@@ -75,7 +121,7 @@
 
   .app-body main {
     order: -1;
-    padding: 12px;
+    padding: var(--space-3);
   }
 
   .tools-panel {
@@ -121,10 +167,10 @@
 
 .year-hud {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  padding: 10px 16px;
-  border-radius: 10px;
+  top: var(--space-4);
+  left: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
   background: rgba(13, 14, 17, 0.55);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -187,7 +233,7 @@
 }
 
 .species-palette .tool-group {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2);
 }
 
 .species-palette ul {
@@ -196,30 +242,30 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .species-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .visibility-toggle {
   flex: none;
   display: flex;
-  padding: 4px;
+  padding: var(--space-1);
 }
 
 .species-button {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   width: 100%;
   min-width: 0;
-  padding: 6px 8px;
+  padding: var(--space-2);
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: none;
   text-align: left;
   color: var(--text);
@@ -238,7 +284,7 @@
 .swatch {
   width: 14px;
   height: 14px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   flex: none;
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
@@ -253,21 +299,34 @@
 .toolbar {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .tool-group {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .tool-group button {
   flex: 1;
-  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) 0;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--panel-bg);
   color: var(--text);
+}
+
+.tool-group button:hover:not(:disabled):not(.selected) {
+  background: var(--bg);
+  border-color: var(--text-muted);
+}
+
+.tool-group button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .tool-group button.selected {
@@ -284,7 +343,7 @@
 .brush-size {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 13px;
   color: var(--text-muted);
 }
@@ -294,35 +353,44 @@
 }
 
 .reset-button {
-  padding: 6px 0;
+  padding: var(--space-2) 0;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--panel-bg);
   color: var(--text);
 }
 
 .model-selector select {
   width: 100%;
-  padding: 6px 8px;
+  padding: var(--space-2) var(--space-2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--panel-bg);
   color: var(--text);
   font: inherit;
 }
 
+.model-selector select:hover {
+  border-color: var(--text-muted);
+}
+
 .reset-button:hover {
   background: var(--bg);
+  border-color: var(--text-muted);
+}
+
+.reset-button:active {
+  transform: translateY(1px);
 }
 
 .placeholder-warning {
-  margin: 0 0 10px;
-  padding: 6px 8px;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2);
   border: 1px solid var(--warn-border);
   background: var(--warn-bg);
   color: var(--warn-text);
   font-size: 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .step-count {
@@ -332,24 +400,24 @@
 }
 
 .sub-step-rate {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   font-size: 11px;
   color: var(--text-muted);
 }
 
 .inspector-coords {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
   font-size: 12px;
   color: var(--text-muted);
 }
 
 .cell-inspector h3 {
-  margin: 14px 0 6px;
-  font-size: 12px;
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 .inspector-values {
@@ -358,13 +426,13 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .inspector-values li {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   font-size: 12px;
 }
 
@@ -412,13 +480,61 @@
 .app-loading,
 .app-error {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-3);
   height: 100vh;
-  font-size: 15px;
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.app-loading {
   color: var(--text-muted);
+  font-size: 15px;
+}
+
+.app-loading .island-mark {
+  animation: island-pulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes island-pulse {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 0.9; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-loading .island-mark {
+    animation: none;
+  }
 }
 
 .app-error {
+  max-width: 420px;
+  margin: 0 auto;
+  color: var(--text-muted);
+}
+
+.app-error h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--danger);
+}
+
+.app-error p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.app-error code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  color: var(--text);
 }

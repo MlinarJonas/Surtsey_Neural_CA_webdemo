@@ -1,6 +1,7 @@
 import { gridStore } from "../state/gridStore";
 import { simulationEngine } from "../sim/engine";
 import { useUIStore } from "../state/uiStore";
+import { PaintIcon, EraseIcon } from "./icons";
 
 function handleClear(): void {
   gridStore.reset();
@@ -23,6 +24,7 @@ export function Toolbar() {
           aria-pressed={tool === "paint"}
           onClick={() => setTool("paint")}
         >
+          <PaintIcon />
           Paint
         </button>
         <button
@@ -31,6 +33,7 @@ export function Toolbar() {
           aria-pressed={tool === "erase"}
           onClick={() => setTool("erase")}
         >
+          <EraseIcon />
           Erase
         </button>
       </div>

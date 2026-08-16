@@ -8,6 +8,7 @@ import { PlaybackControls } from "./ui/PlaybackControls";
 import { CellInspector } from "./ui/CellInspector";
 import { AbundanceChart } from "./ui/AbundanceChart";
 import { ModelSelector, type ModelOption } from "./ui/ModelSelector";
+import { IslandMark, WarningIcon } from "./ui/icons";
 import { simulationEngine } from "./sim/engine";
 import { placeholderDiffusionModel } from "./sim/placeholderModel";
 import { RealNeuralLandscapeModel } from "./sim/realModel";
@@ -132,13 +133,22 @@ export default function App() {
   }, []);
 
   if (load.status === "loading") {
-    return <div className="app-loading">Loading Surtsey…</div>;
+    return (
+      <div className="app-loading">
+        <IslandMark size={40} />
+        <p>Loading Surtsey…</p>
+      </div>
+    );
   }
   if (load.status === "error") {
     return (
       <div className="app-error">
-        Failed to load island data: {load.message}. Did you run
-        web/export/export_island_bundle.py?
+        <WarningIcon />
+        <h2>Couldn't load the island</h2>
+        <p>{load.message}</p>
+        <p>
+          Did you run <code>web/export/export_island_bundle.py</code>?
+        </p>
       </div>
     );
   }
@@ -157,11 +167,16 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>Surtsey Sandbox</h1>
-        <p className="epoch">
-          <ModelStatusBanner /> The coastline erodes as you step, matching the real
-          distance-to-shore data.
-        </p>
+        <div className="brand">
+          <IslandMark size={30} />
+          <div>
+            <h1>Surtsey Sandbox</h1>
+            <p className="epoch">
+              <ModelStatusBanner /> The coastline erodes as you step, matching the real
+              distance-to-shore data.
+            </p>
+          </div>
+        </div>
       </header>
       <div className="app-body">
         <aside className="tools-panel">
@@ -171,7 +186,9 @@ export default function App() {
           <ModelSelector options={load.modelOptions} />
         </aside>
         <main>
-          <IslandView speciesColors={colors} cellSize={3} />
+          <div className="viewport-frame">
+            <IslandView speciesColors={colors} cellSize={3} />
+          </div>
         </main>
         <aside className="inspector-panel">
           <CellInspector

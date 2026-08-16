@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { simulationEngine } from "../sim/engine";
+import { PlayIcon, PauseIcon, StepIcon, ResetIcon } from "./icons";
 
 export function PlaybackControls() {
   const snapshot = useSyncExternalStore(
@@ -19,18 +20,22 @@ export function PlaybackControls() {
       )}
       <div className="tool-group" role="group" aria-label="Playback">
         <button type="button" disabled={busy} onClick={() => simulationEngine.step()}>
+          <StepIcon />
           Step
         </button>
         {snapshot.isRunning ? (
           <button type="button" onClick={() => simulationEngine.pause()}>
+            <PauseIcon />
             Pause
           </button>
         ) : (
           <button type="button" disabled={snapshot.isStepping} onClick={() => simulationEngine.run()}>
+            <PlayIcon />
             Play
           </button>
         )}
         <button type="button" onClick={() => simulationEngine.reset()}>
+          <ResetIcon />
           Reset
         </button>
       </div>
