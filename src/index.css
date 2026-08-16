@@ -1,0 +1,63 @@
+:root {
+  /* Achromatic dark chrome — deliberately colorless so the validated species
+     palette (App.tsx SPECIES_COLORS) and the hillshade terrain are the only
+     saturated color in the UI. Panels sit slightly lighter than the page bg
+     (elevation reads as "lighter" in dark themes), leaving the canvas
+     viewport itself near-black as a stage for the visualization. */
+  --bg: #0d0e11;
+  --panel-bg: #16181d;
+  --border: #2a2d34;
+  --text: #e8e9ec;
+  --text-muted: #8b8e96;
+  --warn-bg: rgba(224, 175, 96, 0.12);
+  --warn-border: rgba(224, 175, 96, 0.4);
+  --warn-text: #e0af60;
+  --danger: #ff6b6b;
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
+
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--bg);
+  font: 15px/1.5 var(--sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+h1,
+h2 {
+  font-family: var(--sans);
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.5em;
+}
+
+/* Un-set without this: h2 falls back to the browser default (~1.5em, larger
+   than h1's explicit 20px in App.css) — sidebar section headers would read
+   as bigger than the page title. */
+h2 {
+  font-size: 16px;
+}
+
+button,
+select {
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease,
+    opacity 120ms ease;
+}
+
+input[type="range"],
+input[type="checkbox"] {
+  accent-color: var(--text);
+}

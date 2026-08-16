@@ -1,0 +1,390 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-bg);
+}
+
+.app header h1 {
+  font-size: 20px;
+}
+
+.app header .epoch {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.app-body aside {
+  width: 240px;
+  flex: none;
+  padding: 16px;
+  background: var(--panel-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+}
+
+.tools-panel {
+  border-right: 1px solid var(--border);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
+}
+
+.inspector-panel {
+  border-left: 1px solid var(--border);
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.2);
+}
+
+.app-body main {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg);
+}
+
+.canvas-stack {
+  position: relative;
+  max-width: 100%;
+}
+
+.canvas-stack canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: 100%;
+  height: auto;
+}
+
+.hillshade-canvas {
+  pointer-events: none;
+}
+
+.grid-canvas {
+  image-rendering: pixelated;
+  touch-action: none;
+  border: 1px solid var(--border);
+}
+
+.brush-cursor-canvas {
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.year-hud {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(13, 14, 17, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  user-select: none;
+}
+
+.year-hud-value {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+.year-hud-range {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.04em;
+}
+
+.year-hud-progress {
+  margin-top: 8px;
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.year-hud-progress-fill {
+  height: 100%;
+  background: #fff;
+  transition: width 80ms linear;
+}
+
+.brush-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  border: 2px solid;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: transform 60ms linear, width 120ms ease, height 120ms ease, border-color 120ms ease;
+}
+
+.erase-glyph {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+  transition: transform 60ms linear;
+}
+
+.species-palette .tool-group {
+  margin-bottom: 10px;
+}
+
+.species-palette ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.species-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.visibility-toggle {
+  flex: none;
+  display: flex;
+  padding: 4px;
+}
+
+.species-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+  color: var(--text);
+}
+
+.species-button:hover {
+  background: var(--bg);
+}
+
+.species-button.selected {
+  border-color: var(--text);
+  background: var(--bg);
+  font-weight: 600;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.species-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tool-group {
+  display: flex;
+  gap: 4px;
+}
+
+.tool-group button {
+  flex: 1;
+  padding: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  color: var(--text);
+}
+
+.tool-group button.selected {
+  background: var(--text);
+  color: var(--panel-bg);
+  border-color: var(--text);
+}
+
+.tool-group button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.brush-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.brush-size input {
+  flex: 1;
+}
+
+.reset-button {
+  padding: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  color: var(--text);
+}
+
+.model-selector select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.reset-button:hover {
+  background: var(--bg);
+}
+
+.placeholder-warning {
+  margin: 0 0 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--warn-border);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.step-count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.sub-step-rate {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.inspector-coords {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cell-inspector h3 {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.inspector-values {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inspector-values li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.inspector-value {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.panel-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.abundance-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.chart-axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-end-label {
+  font-size: 9px;
+  fill: var(--text-muted);
+}
+
+.chart-tick-label {
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--text-muted);
+}
+
+.chart-caption {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.app-loading,
+.app-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.app-error {
+  color: var(--danger);
+}

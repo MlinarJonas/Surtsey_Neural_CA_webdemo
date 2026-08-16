@@ -1,0 +1,27 @@
+{
+  "modelId": "surtsey_65_80_nca_steps_16_no_detection_history_real",
+  "gridH": 223,
+  "gridW": 183,
+  "fixtureYear": 1965,
+  "nAbiotic": 6,
+  "nSpecies": 5,
+  "speciesNames": [
+    "Cakile arctica",
+    "Cochlearia groenlandica",
+    "Honckenya peploides",
+    "Leymus arenarius",
+    "Mertensia maritima"
+  ],
+  "hiddenSize": 64,
+  "perceptionKernelSize": 5,
+  "aliveKernelSize": 7,
+  "proximityBlurSteps": 18,
+  "gateEpsilon": 0.05,
+  "useProximity": true,
+  "useBioticSobel": false,
+  "useDetectionHistory": false,
+  "primaryColonisation": true,
+  "aliveMaskTrainingOnly": false,
+  "perceptionSize": 38,
+  "ncaStepsPerInterval": 16
+}
