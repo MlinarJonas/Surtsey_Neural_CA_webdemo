@@ -13,18 +13,35 @@ import { placeholderDiffusionModel } from "./sim/placeholderModel";
 import { RealNeuralLandscapeModel } from "./sim/realModel";
 import type { IslandBundle } from "./manifest/types";
 
-// Validated (dataviz skill) 8-slot colorblind-safe categorical order.
-// Assigned to species in the fixed order the model/data pipeline uses
-// (alphabetical, from load_occurrence_csv) — never reassigned by rank.
+// Validated (dataviz skill) 8-slot colorblind-safe categorical palette — dark-mode
+// steps (the skill's palette.md has separate light/dark hex per hue; this app is
+// dark-themed throughout, but was accidentally using the LIGHT steps until now).
+// Assigned to species in the fixed order the model/data pipeline uses (alphabetical,
+// from load_occurrence_csv) — never reassigned by rank.
+//
+// The first 5 slots (all that are currently active) are not just the palette's
+// default order: GridCanvas renders species as freely-overlapping regions on a map
+// (any two can be spatial neighbors anywhere), which is the skill's "all-pairs"
+// case — the default order only guarantees its first THREE slots distinguishable
+// under colorblindness there. With 5 species active, an exhaustive search over all
+// 56 five-hue subsets of the 8 (node scripts/validate_palette.js, --pairs all,
+// --mode dark) found blue+aqua+yellow+green+red as the best achievable — worst-pair
+// separation ΔE 11.9, up from ΔE 7.1 for the old blue+orange+red+yellow+magenta
+// selection (which stacked 3 warm hues together). Still short of the strict 15.0
+// floor: no 5-of-8 subset clears it for all-pairs (the skill's own docs predict
+// this — beyond 3 series in an all-pairs chart, no palette choice fully solves it,
+// only fewer simultaneous series or a secondary encoding like texture would). This
+// is the closest color-only fix gets; the sidebar's species list (swatch + name)
+// remains the fallback disambiguator.
 const SPECIES_COLORS = [
-  "#2a78d6", // blue
-  "#eb6834", // orange
-  "#e34948", // red — was aqua (#1baf7a), too close in tone to the dark ocean/terrain grays to read well
-  "#eda100", // yellow
-  "#e87ba4", // magenta
+  "#3987e5", // blue
+  "#199e70", // aqua
+  "#c98500", // yellow
   "#008300", // green
-  "#4a3aa7", // violet
-  "#1baf7a", // aqua
+  "#e66767", // red
+  "#d55181", // magenta
+  "#9085e9", // violet
+  "#d95926", // orange
 ];
 
 type LoadState =
