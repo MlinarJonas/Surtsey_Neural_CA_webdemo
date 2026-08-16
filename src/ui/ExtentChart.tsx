@@ -80,7 +80,7 @@ export function ExtentChart({ speciesNames, speciesColors }: ExtentChartProps) {
           );
         })}
       </svg>
-      <p className="chart-caption">Occupied land cells (biotic &gt; 0.1) vs. year</p>
+      <p className="chart-caption">Occupied land cells (biotic &gt; 0.5) vs. year</p>
     </div>
   );
 }

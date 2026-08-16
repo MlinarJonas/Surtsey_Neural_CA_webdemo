@@ -13,9 +13,10 @@ export interface AbundancePoint {
   abioticSum: number[][];
 }
 
-/** A cell counts as "occupied" by a species above this biotic value — mirrors
- * the Python pipeline's det_history > 0.1 occupancy convention. */
-const OCCUPIED_THRESHOLD = 0.1;
+/** A cell counts as "occupied" by a species above this biotic value. Set well
+ * above a bare-presence cutoff so extent tracks established range rather than
+ * the faint, broad low-value halo the model leaves almost everywhere. */
+const OCCUPIED_THRESHOLD = 0.5;
 
 export interface EngineSnapshot {
   /** True only during continuous Play — a single Step's own animation does not
