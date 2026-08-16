@@ -84,8 +84,11 @@ export class RealNeuralLandscapeModel implements NCAModel {
     this.stepsPerYear = manifest.ncaStepsPerInterval ?? 1;
   }
 
-  /** Fetches the manifest + weights from a URL (browser runtime path). */
-  static async load(baseUrl = "/model"): Promise<RealNeuralLandscapeModel> {
+  /** Fetches the manifest + weights from a URL (browser runtime path). Callers
+   * should pass a path prefixed with import.meta.env.BASE_URL — a hardcoded
+   * absolute path resolves to the domain root, not the deployed base path
+   * (this bit a GitHub Pages project-site deploy once already). */
+  static async load(baseUrl = `${import.meta.env.BASE_URL}model`): Promise<RealNeuralLandscapeModel> {
     const [manifest, conv1WeightBuf, conv1BiasBuf, conv2WeightBuf] = await Promise.all([
       fetch(`${baseUrl}/model.json`).then((r) => {
         if (!r.ok) throw new Error(`model.json: ${r.status} ${r.statusText}`);

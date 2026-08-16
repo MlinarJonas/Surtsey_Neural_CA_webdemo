@@ -57,14 +57,14 @@ export default function App() {
   useEffect(() => {
     async function load() {
       const [manifest, landMaskBuf, abioticStaticBuf, abioticVaryingBuf, hillshadeBuf] = await Promise.all([
-        fetch("/island.json").then((r) => {
+        fetch(`${import.meta.env.BASE_URL}island.json`).then((r) => {
           if (!r.ok) throw new Error(`island.json: ${r.status} ${r.statusText}`);
           return r.json() as Promise<IslandBundle>;
         }),
-        fetch("/landmask.bin").then((r) => r.arrayBuffer()),
-        fetch("/abiotic_static.bin").then((r) => r.arrayBuffer()),
-        fetch("/abiotic_varying.bin").then((r) => r.arrayBuffer()),
-        fetch("/hillshade.bin").then((r) => r.arrayBuffer()),
+        fetch(`${import.meta.env.BASE_URL}landmask.bin`).then((r) => r.arrayBuffer()),
+        fetch(`${import.meta.env.BASE_URL}abiotic_static.bin`).then((r) => r.arrayBuffer()),
+        fetch(`${import.meta.env.BASE_URL}abiotic_varying.bin`).then((r) => r.arrayBuffer()),
+        fetch(`${import.meta.env.BASE_URL}hillshade.bin`).then((r) => r.arrayBuffer()),
       ]);
       gridStore.init(manifest, landMaskBuf, abioticStaticBuf, abioticVaryingBuf, hillshadeBuf);
 
@@ -77,7 +77,9 @@ export default function App() {
       // world bundle's (same order, same count) for the channel shapes to
       // line up. Missing or mismatched is not an error, just "not offered."
       try {
-        const realModel = await RealNeuralLandscapeModel.load("/model/no_detection_history");
+        const realModel = await RealNeuralLandscapeModel.load(
+          `${import.meta.env.BASE_URL}model/no_detection_history`
+        );
         const matches =
           realModel.speciesNames.length === manifest.speciesNames.length &&
           realModel.speciesNames.every((name, i) => name === manifest.speciesNames[i]);
