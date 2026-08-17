@@ -21,6 +21,11 @@ interface UIState {
    * to whatever the brush paints. Default false — Sandbox (manual painting
    * only) is unchanged. */
   historicalMode: boolean;
+  /** When true, OccurrenceLayer overlays real survey detections (cumulative
+   * to the current year, with this year's new ones highlighted) on the map.
+   * Independent of historicalMode — a reference layer, not a simulation
+   * behavior. Default false. */
+  showOccurrences: boolean;
   setTool: (tool: Tool) => void;
   setSelectedSpecies: (idx: number) => void;
   setBrushRadius: (radius: number) => void;
@@ -28,6 +33,7 @@ interface UIState {
   toggleSpeciesVisibility: (idx: number) => void;
   setRenderMode: (mode: RenderMode) => void;
   setHistoricalMode: (on: boolean) => void;
+  setShowOccurrences: (on: boolean) => void;
 }
 
 /** UI-only state (selected tool/species/brush size, hovered cell, layer
@@ -41,6 +47,7 @@ export const useUIStore = create<UIState>((set) => ({
   hiddenSpecies: new Set(),
   renderMode: "blend",
   historicalMode: false,
+  showOccurrences: false,
   setTool: (tool) => set({ tool }),
   setSelectedSpecies: (idx) => set({ selectedSpecies: idx }),
   setBrushRadius: (radius) => set({ brushRadius: radius }),
@@ -60,4 +67,5 @@ export const useUIStore = create<UIState>((set) => ({
     }),
   setRenderMode: (mode) => set({ renderMode: mode }),
   setHistoricalMode: (on) => set({ historicalMode: on }),
+  setShowOccurrences: (on) => set({ showOccurrences: on }),
 }));

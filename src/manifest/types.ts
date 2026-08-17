@@ -44,3 +44,19 @@ export interface IntroductionEvent {
   row: number;
   col: number;
 }
+
+/** One entry of web/frontend/public/occurrences.json, written by the same
+ * export script from the real occurrence CSV's full survey record
+ * (src/nca/data_loader.py's load_occurrence_csv return value,
+ * all_events_by_snap — deduplicated per species/cell/year). The full survey
+ * history, not just the curated introduction subset IntroductionEvent
+ * represents — same shape, kept as its own type since it's a different
+ * concept. Absent entirely for bundles with no real-world occurrence data. */
+export interface OccurrenceEvent {
+  /** Calendar year of the detection. */
+  year: number;
+  /** Index into IslandBundle.speciesNames. */
+  species: number;
+  row: number;
+  col: number;
+}

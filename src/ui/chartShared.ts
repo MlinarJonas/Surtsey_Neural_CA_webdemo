@@ -1,6 +1,6 @@
 /** Shared layout constants for every sidebar time-series chart (Abundance,
- * Composition, Extent, Suitability) — kept in one place so their axes/ticks
- * stay visually identical rather than drifting apart per-component. */
+ * Composition, Extent, Habitat Selection) — kept in one place so their
+ * axes/ticks stay visually identical rather than drifting apart per-component. */
 export const CHART_WIDTH = 208;
 export const CHART_HEIGHT = 90;
 export const CHART_PAD = 4;

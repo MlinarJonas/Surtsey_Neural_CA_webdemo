@@ -1,3 +1,4 @@
+import { gridStore } from "../state/gridStore";
 import { useUIStore } from "../state/uiStore";
 
 interface SpeciesPaletteProps {
@@ -12,6 +13,8 @@ export function SpeciesPalette({ speciesNames, speciesColors }: SpeciesPalettePr
   const toggleSpeciesVisibility = useUIStore((s) => s.toggleSpeciesVisibility);
   const renderMode = useUIStore((s) => s.renderMode);
   const setRenderMode = useUIStore((s) => s.setRenderMode);
+  const showOccurrences = useUIStore((s) => s.showOccurrences);
+  const setShowOccurrences = useUIStore((s) => s.setShowOccurrences);
 
   return (
     <div className="species-palette">
@@ -64,6 +67,21 @@ export function SpeciesPalette({ speciesNames, speciesColors }: SpeciesPalettePr
           );
         })}
       </ul>
+
+      {/* Only bundles with a real survey record (Surtsey) offer this —
+       * gridStore.occurrences is set once at init() and never changes, so a
+       * plain read (not a subscribed hook) is enough, same convention as the
+       * Historical-mode toggle in PlaybackControls. */}
+      {gridStore.occurrences.length > 0 && (
+        <label className="occurrence-toggle">
+          <input
+            type="checkbox"
+            checked={showOccurrences}
+            onChange={(e) => setShowOccurrences(e.target.checked)}
+          />
+          Show real occurrences
+        </label>
+      )}
     </div>
   );
 }

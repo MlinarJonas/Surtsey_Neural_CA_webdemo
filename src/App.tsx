@@ -15,7 +15,7 @@ import { IslandMark, WarningIcon } from "./ui/icons";
 import { simulationEngine } from "./sim/engine";
 import { placeholderDiffusionModel } from "./sim/placeholderModel";
 import { RealNeuralLandscapeModel } from "./sim/realModel";
-import type { IntroductionEvent, IslandBundle } from "./manifest/types";
+import type { IntroductionEvent, IslandBundle, OccurrenceEvent } from "./manifest/types";
 
 // Validated (dataviz skill) 8-slot colorblind-safe categorical palette — dark-mode
 // steps (the skill's palette.md has separate light/dark hex per hue; this app is
@@ -100,7 +100,26 @@ export default function App() {
         console.warn("No introduction schedule available — Historical mode stays hidden.", err);
       }
 
-      gridStore.init(manifest, landMaskBuf, abioticStaticBuf, abioticVaryingBuf, hillshadeBuf, introductions);
+      // Optional, same convention: only Surtsey-derived bundles ship the full
+      // real survey record. Missing/404 just means the "show real
+      // occurrences" toggle has nothing to offer for this world.
+      let occurrences: OccurrenceEvent[] = [];
+      try {
+        const r = await fetch(`${import.meta.env.BASE_URL}occurrences.json`);
+        if (r.ok) occurrences = await r.json();
+      } catch (err) {
+        console.warn("No occurrence record available — the overlay toggle stays hidden.", err);
+      }
+
+      gridStore.init(
+        manifest,
+        landMaskBuf,
+        abioticStaticBuf,
+        abioticVaryingBuf,
+        hillshadeBuf,
+        introductions,
+        occurrences
+      );
 
       const modelOptions: ModelOption[] = [
         { id: placeholderDiffusionModel.id, label: "Placeholder (diffusion)", model: placeholderDiffusionModel },

@@ -26,7 +26,7 @@ export function SuitabilityChart({ speciesNames, speciesColors, abioticChannelNa
   if (history.length < 2) {
     return (
       <div className="suitability-chart">
-        <h2>Suitability</h2>
+        <h2>Habitat Selection</h2>
         <p className="panel-empty">Paint, then Step or Play to see a trend.</p>
       </div>
     );
@@ -43,7 +43,7 @@ export function SuitabilityChart({ speciesNames, speciesColors, abioticChannelNa
 
   return (
     <div className="suitability-chart">
-      <h2>Suitability</h2>
+      <h2>Habitat Selection</h2>
       <select
         className="chart-channel-select"
         value={channel}

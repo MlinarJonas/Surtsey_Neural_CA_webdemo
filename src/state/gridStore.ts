@@ -1,4 +1,4 @@
-import type { IntroductionEvent, IslandBundle } from "../manifest/types";
+import type { IntroductionEvent, IslandBundle, OccurrenceEvent } from "../manifest/types";
 
 /**
  * Grid/paint/simulation state, deliberately kept outside React.
@@ -65,6 +65,12 @@ class GridStore {
    * of when the paint happened, so switching modes never retroactively wipes
    * something the user deliberately placed. Reset by reset(). */
   manuallyActivated: boolean[] = [];
+  /** Real-world survey record (empty for bundles with none) — the full
+   * detection history, not just the curated introduction subset. Set once in
+   * init(), read by the "show real occurrences" overlay (OccurrenceLayer). */
+  occurrences: OccurrenceEvent[] = [];
+  /** occurrences grouped by year, for O(1) lookup while rendering. */
+  occurrencesByYear: Map<number, OccurrenceEvent[]> = new Map();
 
   private ready = false;
   private listeners = new Set<Listener>();
@@ -83,6 +89,8 @@ class GridStore {
    * @param hillshadeBuf Uint8, shape (hillshadeH*hillshadeW,).
    * @param introductions Real-world introduction schedule, if any — empty for
    * bundles without one (e.g. the placeholder/synthetic world).
+   * @param occurrences Real-world survey record, if any — empty for bundles
+   * without one.
    */
   init(
     bundle: IslandBundle,
@@ -90,7 +98,8 @@ class GridStore {
     abioticStaticBuf: ArrayBuffer,
     abioticVaryingBuf: ArrayBuffer,
     hillshadeBuf: ArrayBuffer,
-    introductions: IntroductionEvent[] = []
+    introductions: IntroductionEvent[] = [],
+    occurrences: OccurrenceEvent[] = []
   ): void {
     this.gridH = bundle.gridH;
     this.gridW = bundle.gridW;
@@ -111,6 +120,14 @@ class GridStore {
       if (cur === undefined || event.year < cur) this.firstIntroductionYear[event.species] = event.year;
     }
     this.manuallyActivated = bundle.speciesNames.map(() => false);
+
+    this.occurrences = occurrences;
+    this.occurrencesByYear = new Map();
+    for (const event of occurrences) {
+      const forYear = this.occurrencesByYear.get(event.year);
+      if (forYear) forYear.push(event);
+      else this.occurrencesByYear.set(event.year, [event]);
+    }
 
     this.hillshadeH = bundle.hillshadeH;
     this.hillshadeW = bundle.hillshadeW;

@@ -2,6 +2,7 @@ import { gridStore } from "../state/gridStore";
 import { useUIStore } from "../state/uiStore";
 import { HillshadeLayer } from "./HillshadeLayer";
 import { GridCanvas } from "./GridCanvas";
+import { OccurrenceLayer } from "./OccurrenceLayer";
 import { BrushCursorLayer } from "./BrushCursorLayer";
 import { YearHUD } from "./YearHUD";
 
@@ -55,6 +56,7 @@ export function IslandView({ speciesColors, cellSize = 3 }: IslandViewProps) {
     >
       <HillshadeLayer />
       <GridCanvas speciesColors={speciesColors} />
+      <OccurrenceLayer speciesColors={speciesColors} />
       <BrushCursorLayer speciesColors={speciesColors} />
       <YearHUD />
       {hoveredCell && (
