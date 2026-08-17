@@ -14,11 +14,13 @@ const NEW_STROKE_WIDTH = 0.7;
 
 /**
  * Overlays the real occurrence record (actual survey detections, not model
- * predictions) on the map: cumulative up to the current year, per-species
- * shape + color, with the current year's new detections getting a bright
- * outline ring — the same visual language as the reference artifact
- * ("Surtsey Colonisation — Step Viewer"), adapted for this app's dark theme
- * (a near-white ring here, where the artifact used black on a light page).
+ * predictions) on the map, via two independent toggles: the full history up
+ * to the current year, and just the current year's new detections (drawn
+ * with a bright outline ring) — the same visual language as the reference
+ * artifact ("Surtsey Colonisation — Step Viewer"), adapted for this app's
+ * dark theme (a near-white ring here, where the artifact used black on a
+ * light page). Either toggle works alone; with both on, this year's points
+ * render on top of the full history so they still stand out.
  *
  * A single <svg> with a viewBox in grid-cell units, not one positioned DOM
  * element per point (unlike .brush-ring/.erase-glyph) — at up to ~4600
@@ -30,7 +32,8 @@ const NEW_STROKE_WIDTH = 0.7;
  * split uses for the same reason.
  */
 export function OccurrenceLayer({ speciesColors }: OccurrenceLayerProps) {
-  const showOccurrences = useUIStore((s) => s.showOccurrences);
+  const showCumulative = useUIStore((s) => s.showOccurrencesCumulative);
+  const showCurrentYear = useUIStore((s) => s.showOccurrencesCurrentYear);
   // getSnapshot returns a primitive, so useSyncExternalStore only re-renders
   // this component when the EFFECTIVE year actually changes, even though
   // gridStore notifies on every sub-step (paint/erase/model steps) — exactly
@@ -40,19 +43,31 @@ export function OccurrenceLayer({ speciesColors }: OccurrenceLayerProps) {
     () => Math.min(gridStore.currentYear, gridStore.yearEnd)
   );
 
-  const cumulative = useMemo(() => {
-    if (!showOccurrences) return [];
+  // Years strictly before the current one, shown plain (no ring) — the
+  // current year is handled separately below so its ring applies only when
+  // showCurrentYear is on, independent of whether cumulative is on too.
+  const priorYears = useMemo(() => {
+    if (!showCumulative) return [];
     const events = [];
-    for (let year = gridStore.yearStart; year <= effectiveYear; year++) {
+    for (let year = gridStore.yearStart; year < effectiveYear; year++) {
       const forYear = gridStore.occurrencesByYear.get(year);
       if (forYear) events.push(...forYear);
     }
     return events;
-  }, [showOccurrences, effectiveYear]);
+  }, [showCumulative, effectiveYear]);
 
-  if (!showOccurrences || cumulative.length === 0) return null;
+  const currentYear = useMemo(() => {
+    if (!showCumulative && !showCurrentYear) return [];
+    return gridStore.occurrencesByYear.get(effectiveYear) ?? [];
+  }, [showCumulative, showCurrentYear, effectiveYear]);
+
+  if (priorYears.length === 0 && currentYear.length === 0) return null;
 
   const { gridW, gridH } = gridStore;
+  // Current-year points get the ring only when that toggle is actually on —
+  // when only "cumulative" is checked, this year's points render plain,
+  // indistinguishable from prior years.
+  const ringCurrentYear = showCurrentYear;
 
   return (
     <svg
@@ -61,21 +76,28 @@ export function OccurrenceLayer({ speciesColors }: OccurrenceLayerProps) {
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      {cumulative.map((event, i) => {
-        const isNew = event.year === effectiveYear;
-        return (
-          <Marker
-            key={i}
-            shape={MARKER_SHAPES[event.species % MARKER_SHAPES.length]}
-            cx={event.col + 0.5}
-            cy={event.row + 0.5}
-            r={MARKER_RADIUS}
-            fill={speciesColors[event.species] ?? "#fff"}
-            stroke={isNew ? "var(--text)" : undefined}
-            strokeWidth={isNew ? NEW_STROKE_WIDTH : undefined}
-          />
-        );
-      })}
+      {priorYears.map((event, i) => (
+        <Marker
+          key={`prior-${i}`}
+          shape={MARKER_SHAPES[event.species % MARKER_SHAPES.length]}
+          cx={event.col + 0.5}
+          cy={event.row + 0.5}
+          r={MARKER_RADIUS}
+          fill={speciesColors[event.species] ?? "#fff"}
+        />
+      ))}
+      {currentYear.map((event, i) => (
+        <Marker
+          key={`current-${i}`}
+          shape={MARKER_SHAPES[event.species % MARKER_SHAPES.length]}
+          cx={event.col + 0.5}
+          cy={event.row + 0.5}
+          r={MARKER_RADIUS}
+          fill={speciesColors[event.species] ?? "#fff"}
+          stroke={ringCurrentYear ? "var(--text)" : undefined}
+          strokeWidth={ringCurrentYear ? NEW_STROKE_WIDTH : undefined}
+        />
+      ))}
     </svg>
   );
 }

@@ -13,8 +13,10 @@ export function SpeciesPalette({ speciesNames, speciesColors }: SpeciesPalettePr
   const toggleSpeciesVisibility = useUIStore((s) => s.toggleSpeciesVisibility);
   const renderMode = useUIStore((s) => s.renderMode);
   const setRenderMode = useUIStore((s) => s.setRenderMode);
-  const showOccurrences = useUIStore((s) => s.showOccurrences);
-  const setShowOccurrences = useUIStore((s) => s.setShowOccurrences);
+  const showOccurrencesCumulative = useUIStore((s) => s.showOccurrencesCumulative);
+  const setShowOccurrencesCumulative = useUIStore((s) => s.setShowOccurrencesCumulative);
+  const showOccurrencesCurrentYear = useUIStore((s) => s.showOccurrencesCurrentYear);
+  const setShowOccurrencesCurrentYear = useUIStore((s) => s.setShowOccurrencesCurrentYear);
 
   return (
     <div className="species-palette">
@@ -68,19 +70,32 @@ export function SpeciesPalette({ speciesNames, speciesColors }: SpeciesPalettePr
         })}
       </ul>
 
-      {/* Only bundles with a real survey record (Surtsey) offer this —
+      {/* Only bundles with a real survey record (Surtsey) offer these —
        * gridStore.occurrences is set once at init() and never changes, so a
        * plain read (not a subscribed hook) is enough, same convention as the
-       * Historical-mode toggle in PlaybackControls. */}
+       * Historical-mode toggle in PlaybackControls. Two independent toggles:
+       * the full history up to the current year, and just this year's new
+       * detections — either can be on alone, or both together to see this
+       * year's points stand out against the full record. */}
       {gridStore.occurrences.length > 0 && (
-        <label className="occurrence-toggle">
-          <input
-            type="checkbox"
-            checked={showOccurrences}
-            onChange={(e) => setShowOccurrences(e.target.checked)}
-          />
-          Show real occurrences
-        </label>
+        <div className="occurrence-toggles">
+          <label className="occurrence-toggle">
+            <input
+              type="checkbox"
+              checked={showOccurrencesCumulative}
+              onChange={(e) => setShowOccurrencesCumulative(e.target.checked)}
+            />
+            Show occurrences to date
+          </label>
+          <label className="occurrence-toggle">
+            <input
+              type="checkbox"
+              checked={showOccurrencesCurrentYear}
+              onChange={(e) => setShowOccurrencesCurrentYear(e.target.checked)}
+            />
+            Show this year&apos;s occurrences
+          </label>
+        </div>
       )}
     </div>
   );
