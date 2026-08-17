@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { simulationEngine } from "../sim/engine";
+import { gridStore } from "../state/gridStore";
+import { useUIStore } from "../state/uiStore";
 import { PlayIcon, PauseIcon, StepIcon, ResetIcon } from "./icons";
 
 export function PlaybackControls() {
@@ -7,12 +9,43 @@ export function PlaybackControls() {
     (cb) => simulationEngine.subscribe(cb),
     () => simulationEngine.getSnapshot()
   );
+  const historicalMode = useUIStore((s) => s.historicalMode);
+  const setHistoricalMode = useUIStore((s) => s.setHistoricalMode);
   const busy = snapshot.isRunning || snapshot.isStepping;
   const secondsPerYear = snapshot.stepsPerYear / snapshot.speedSubStepsPerSec;
 
   return (
     <div className="playback-controls">
       <h2>Simulation</h2>
+      {/* Only bundles with a real introduction schedule (Surtsey) offer this —
+       * gridStore.introductions is set once at init() and never changes, so a
+       * plain read (not a subscribed hook) is enough, same as e.g. yearStart. */}
+      {gridStore.introductions.length > 0 && (
+        <div className="tool-group" role="group" aria-label="Simulation mode">
+          <button
+            type="button"
+            className={historicalMode ? "" : "selected"}
+            aria-pressed={!historicalMode}
+            onClick={() => setHistoricalMode(false)}
+          >
+            Sandbox
+          </button>
+          <button
+            type="button"
+            className={historicalMode ? "selected" : ""}
+            aria-pressed={historicalMode}
+            onClick={() => setHistoricalMode(true)}
+          >
+            Historical
+          </button>
+        </div>
+      )}
+      {historicalMode && gridStore.introductions.length > 0 && (
+        <p className="sub-step-rate">
+          Species appear automatically at their real recorded year/location. Painting still
+          works — a hand-placed species won't be reset by the schedule.
+        </p>
+      )}
       {snapshot.isPlaceholder && (
         <p className="placeholder-warning">
           Placeholder rule ({snapshot.modelId}) — not the trained ecological model.

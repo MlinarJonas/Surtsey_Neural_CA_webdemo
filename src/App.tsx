@@ -15,7 +15,7 @@ import { IslandMark, WarningIcon } from "./ui/icons";
 import { simulationEngine } from "./sim/engine";
 import { placeholderDiffusionModel } from "./sim/placeholderModel";
 import { RealNeuralLandscapeModel } from "./sim/realModel";
-import type { IslandBundle } from "./manifest/types";
+import type { IntroductionEvent, IslandBundle } from "./manifest/types";
 
 // Validated (dataviz skill) 8-slot colorblind-safe categorical palette — dark-mode
 // steps (the skill's palette.md has separate light/dark hex per hue; this app is
@@ -87,7 +87,20 @@ export default function App() {
         fetch(`${import.meta.env.BASE_URL}abiotic_varying.bin`).then((r) => r.arrayBuffer()),
         fetch(`${import.meta.env.BASE_URL}hillshade.bin`).then((r) => r.arrayBuffer()),
       ]);
-      gridStore.init(manifest, landMaskBuf, abioticStaticBuf, abioticVaryingBuf, hillshadeBuf);
+
+      // Optional: only Surtsey-derived bundles ship a real introduction
+      // schedule (see web/export/export_island_bundle.py). Missing/404 just
+      // means Historical mode has nothing to offer for this world — not an
+      // error, same convention as the trained-model fetch below.
+      let introductions: IntroductionEvent[] = [];
+      try {
+        const r = await fetch(`${import.meta.env.BASE_URL}introductions.json`);
+        if (r.ok) introductions = await r.json();
+      } catch (err) {
+        console.warn("No introduction schedule available — Historical mode stays hidden.", err);
+      }
+
+      gridStore.init(manifest, landMaskBuf, abioticStaticBuf, abioticVaryingBuf, hillshadeBuf, introductions);
 
       const modelOptions: ModelOption[] = [
         { id: placeholderDiffusionModel.id, label: "Placeholder (diffusion)", model: placeholderDiffusionModel },

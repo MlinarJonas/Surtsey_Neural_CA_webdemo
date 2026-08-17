@@ -16,12 +16,18 @@ interface UIState {
   /** Species indices excluded from rendering. Empty = everything visible. */
   hiddenSpecies: Set<number>;
   renderMode: RenderMode;
+  /** When true, the simulation engine auto-introduces species from the real
+   * occurrence-CSV schedule at their historical year/location, in addition
+   * to whatever the brush paints. Default false — Sandbox (manual painting
+   * only) is unchanged. */
+  historicalMode: boolean;
   setTool: (tool: Tool) => void;
   setSelectedSpecies: (idx: number) => void;
   setBrushRadius: (radius: number) => void;
   setHoveredCell: (cell: HoveredCell | null) => void;
   toggleSpeciesVisibility: (idx: number) => void;
   setRenderMode: (mode: RenderMode) => void;
+  setHistoricalMode: (on: boolean) => void;
 }
 
 /** UI-only state (selected tool/species/brush size, hovered cell, layer
@@ -34,6 +40,7 @@ export const useUIStore = create<UIState>((set) => ({
   hoveredCell: null,
   hiddenSpecies: new Set(),
   renderMode: "blend",
+  historicalMode: false,
   setTool: (tool) => set({ tool }),
   setSelectedSpecies: (idx) => set({ selectedSpecies: idx }),
   setBrushRadius: (radius) => set({ brushRadius: radius }),
@@ -52,4 +59,5 @@ export const useUIStore = create<UIState>((set) => ({
       return { hiddenSpecies: next };
     }),
   setRenderMode: (mode) => set({ renderMode: mode }),
+  setHistoricalMode: (on) => set({ historicalMode: on }),
 }));

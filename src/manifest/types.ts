@@ -30,3 +30,17 @@ export interface IslandBundle {
   hillshadeW: number;
   hillshadeH: number;
 }
+
+/** One entry of web/frontend/public/introductions.json, written by the same
+ * export script from the real occurrence CSV's introduction schedule
+ * (src/nca/data_loader.py's load_introductions — mode configured per-bundle,
+ * "file" for Surtsey). Absent entirely for bundles with no real-world
+ * introduction data (e.g. the placeholder/synthetic world). */
+export interface IntroductionEvent {
+  /** Calendar year the species was first detected/introduced. */
+  year: number;
+  /** Index into IslandBundle.speciesNames. */
+  species: number;
+  row: number;
+  col: number;
+}

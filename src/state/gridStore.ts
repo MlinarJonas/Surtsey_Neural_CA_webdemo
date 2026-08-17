@@ -1,4 +1,4 @@
-import type { IslandBundle } from "../manifest/types";
+import type { IntroductionEvent, IslandBundle } from "../manifest/types";
 
 /**
  * Grid/paint/simulation state, deliberately kept outside React.
@@ -51,6 +51,20 @@ class GridStore {
   hillshade: Uint8Array = new Uint8Array(0);
   hillshadeW = 0;
   hillshadeH = 0;
+  /** Real-world introduction schedule (empty for bundles with none, e.g. the
+   * placeholder/synthetic world) — set once in init(), read by the
+   * simulation engine's Historical mode. */
+  introductions: IntroductionEvent[] = [];
+  /** introductions grouped by year, for O(1) lookup during playback. */
+  introductionsByYear: Map<number, IntroductionEvent[]> = new Map();
+  /** Per species, the earliest year it appears in introductions — undefined
+   * if that species has no scheduled introduction at all. */
+  firstIntroductionYear: (number | undefined)[] = [];
+  /** Per species, true once the user has hand-painted it at least once —
+   * exempts it from Historical mode's "not yet introduced" gate regardless
+   * of when the paint happened, so switching modes never retroactively wipes
+   * something the user deliberately placed. Reset by reset(). */
+  manuallyActivated: boolean[] = [];
 
   private ready = false;
   private listeners = new Set<Listener>();
@@ -67,19 +81,36 @@ class GridStore {
    * @param abioticStaticBuf Float32, shape (nAbioticStatic, gridH*gridW).
    * @param abioticVaryingBuf Float32, shape (nYears, nAbioticVarying, gridH*gridW), year-major.
    * @param hillshadeBuf Uint8, shape (hillshadeH*hillshadeW,).
+   * @param introductions Real-world introduction schedule, if any — empty for
+   * bundles without one (e.g. the placeholder/synthetic world).
    */
   init(
     bundle: IslandBundle,
     landMaskBuf: ArrayBuffer,
     abioticStaticBuf: ArrayBuffer,
     abioticVaryingBuf: ArrayBuffer,
-    hillshadeBuf: ArrayBuffer
+    hillshadeBuf: ArrayBuffer,
+    introductions: IntroductionEvent[] = []
   ): void {
     this.gridH = bundle.gridH;
     this.gridW = bundle.gridW;
     this.yearStart = bundle.yearStart;
     this.yearEnd = bundle.yearEnd;
     this.speciesNames = bundle.speciesNames;
+
+    this.introductions = introductions;
+    this.introductionsByYear = new Map();
+    for (const event of introductions) {
+      const forYear = this.introductionsByYear.get(event.year);
+      if (forYear) forYear.push(event);
+      else this.introductionsByYear.set(event.year, [event]);
+    }
+    this.firstIntroductionYear = bundle.speciesNames.map(() => undefined);
+    for (const event of introductions) {
+      const cur = this.firstIntroductionYear[event.species];
+      if (cur === undefined || event.year < cur) this.firstIntroductionYear[event.species] = event.year;
+    }
+    this.manuallyActivated = bundle.speciesNames.map(() => false);
 
     this.hillshadeH = bundle.hillshadeH;
     this.hillshadeW = bundle.hillshadeW;
@@ -152,6 +183,9 @@ class GridStore {
     this.forEachCellInBrush(row, col, radius, (idx) => {
       this.biotic[speciesIdx][idx] = 1.0;
     });
+    // A hand-painted species is "activated" from now on regardless of the
+    // current mode, so switching to Historical mode later never wipes it.
+    this.manuallyActivated[speciesIdx] = true;
     this.notify();
   }
 
@@ -169,6 +203,7 @@ class GridStore {
     for (const channel of this.biotic) channel.fill(0);
     for (const channel of this.detectionHistory) channel.fill(0);
     this.initialState = null;
+    this.manuallyActivated = this.manuallyActivated.map(() => false);
     this.notify();
   }
 

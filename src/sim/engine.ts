@@ -1,4 +1,5 @@
 import { gridStore } from "../state/gridStore";
+import { useUIStore } from "../state/uiStore";
 import { placeholderDiffusionModel } from "./placeholderModel";
 import type { GridContext, NCAModel, SimState } from "./types";
 
@@ -110,10 +111,43 @@ class SimulationEngine {
     return { extent, abioticSum };
   }
 
+  /** In Historical mode, zeroes any species not yet introduced (real schedule
+   * or a manual paint, whichever came first — see gridStore.manuallyActivated)
+   * and injects that year's scheduled events at full value, single-cell (no
+   * positional-uncertainty blur, unlike the Python training pipeline — this
+   * is a display of the actual recorded coordinate, not a training signal).
+   * A no-op, returning state unchanged, whenever Historical mode is off. */
+  private applyIntroductions(state: SimState, year: number): SimState {
+    if (!useUIStore.getState().historicalMode) return state;
+    const biotic = state.biotic.map((ch) => ch.slice());
+    for (let s = 0; s < biotic.length; s++) {
+      const introYear = gridStore.firstIntroductionYear[s];
+      const active = (introYear !== undefined && introYear <= year) || gridStore.manuallyActivated[s];
+      if (!active) biotic[s].fill(0);
+    }
+    const events = gridStore.introductionsByYear.get(year);
+    if (events) {
+      for (const { species, row, col } of events) {
+        const idx = row * gridStore.gridW + col;
+        if (gridStore.landMask[idx] === 1) biotic[species][idx] = 1.0;
+      }
+    }
+    return { biotic, detectionHistory: state.detectionHistory };
+  }
+
   /** Takes the "reset point" snapshot and seeds history[0] the first time a
-   * run/step starts after a reset/clear. No-op on subsequent calls. */
+   * run/step starts after a reset/clear. No-op on subsequent calls. Applies
+   * year-start introductions first (if any), so the reset point itself
+   * already reflects them and "Reset" restores correctly. */
   private ensureStarted(): void {
     if (gridStore.hasInitialSnapshot) return;
+    // getSimState() returns a fresh wrapper object each call (even though the
+    // underlying arrays are shared) — capture it once so the reference
+    // comparison below actually detects whether applyIntroductions changed
+    // anything, rather than always seeing "different objects."
+    const current = gridStore.getSimState();
+    const seeded = this.applyIntroductions(current, gridStore.yearStart);
+    if (seeded !== current) gridStore.setSimState(seeded);
     gridStore.snapshotInitialCondition();
     const state = gridStore.getSimState();
     const { extent, abioticSum } = this.computeExtentAndAbioticSum(state);
@@ -131,9 +165,12 @@ class SimulationEngine {
     if (this.subStep >= this.model.stepsPerYear) {
       this.subStep = 0;
       this.stepCount++;
-      gridStore.setYear(gridStore.yearStart + this.stepCount);
-      const { extent, abioticSum } = this.computeExtentAndAbioticSum(next);
-      this.history.push({ step: this.stepCount, abundance: this.computeAbundance(next), extent, abioticSum });
+      const year = gridStore.yearStart + this.stepCount;
+      gridStore.setYear(year);
+      const injected = this.applyIntroductions(next, year);
+      if (injected !== next) gridStore.setSimState(injected);
+      const { extent, abioticSum } = this.computeExtentAndAbioticSum(injected);
+      this.history.push({ step: this.stepCount, abundance: this.computeAbundance(injected), extent, abioticSum });
       if (this.mode === "stepping") {
         this.stopTicker();
         this.mode = "idle";
