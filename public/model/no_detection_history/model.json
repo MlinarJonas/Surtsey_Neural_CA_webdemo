@@ -1,9 +1,9 @@
 {
-  "modelId": "surtsey_65_80_nca_steps_16_no_detection_history_real",
+  "modelId": "surtsey_NO_detection_history",
   "gridH": 223,
   "gridW": 183,
   "fixtureYear": 1965,
-  "nAbiotic": 6,
+  "nAbiotic": 7,
   "nSpecies": 5,
   "speciesNames": [
     "Cakile arctica",
@@ -15,13 +15,13 @@
   "hiddenSize": 64,
   "perceptionKernelSize": 5,
   "aliveKernelSize": 7,
-  "proximityBlurSteps": 18,
+  "proximityBlurSteps": 19,
   "gateEpsilon": 0.05,
   "useProximity": true,
   "useBioticSobel": false,
   "useDetectionHistory": false,
   "primaryColonisation": true,
   "aliveMaskTrainingOnly": false,
-  "perceptionSize": 38,
+  "perceptionSize": 41,
   "ncaStepsPerInterval": 16
 }
