@@ -18,9 +18,8 @@ export interface GridContext {
  * engine and UI never need to know which one is running.
  */
 export interface NCAModel {
-  /** Shown in the UI so a placeholder can never be mistaken for a validated result. */
+  /** Shown in the UI (model dropdown, status banner). */
   readonly id: string;
-  readonly isPlaceholder: boolean;
   /** How many consecutive step() calls make up one simulated year, with the
    * engine holding GridContext (land mask, abiotic) fixed across all of them —
    * matches how the reference Python pipeline actually rolls the model forward

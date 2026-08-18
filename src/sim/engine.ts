@@ -1,6 +1,5 @@
 import { gridStore } from "../state/gridStore";
 import { useUIStore } from "../state/uiStore";
-import { placeholderDiffusionModel } from "./placeholderModel";
 import { gaussianImpulsePeak, repeatedGaussianBlurZero } from "./conv";
 import type { GridContext, NCAModel, SimState } from "./types";
 
@@ -31,11 +30,14 @@ export interface EngineSnapshot {
   stepCount: number;
   /** Position within the current year's sub-step animation, 0..stepsPerYear-1. */
   subStep: number;
-  /** Sub-steps per simulated year for the active model (see NCAModel.stepsPerYear). */
+  /** Sub-steps per simulated year for the active model (see NCAModel.stepsPerYear).
+   * 1 whenever no model has been selected yet. */
   stepsPerYear: number;
   speedSubStepsPerSec: number;
+  /** Empty string whenever no model has been selected yet — the app only
+   * renders playback UI after App.tsx has already called setModel() with a
+   * loaded trained model, so this is only user-visible transiently, if ever. */
   modelId: string;
-  isPlaceholder: boolean;
   history: AbundancePoint[];
 }
 
@@ -55,7 +57,10 @@ type Listener = () => void;
  * animate every sub-step rather than jumping straight to the year's end state.
  */
 class SimulationEngine {
-  private model: NCAModel;
+  /** Null until App.tsx's load effect calls setModel() with a fetched trained
+   * model — there is no placeholder/fallback model, so playback is simply
+   * unavailable (step()/run() no-op) until a real model has loaded. */
+  private model: NCAModel | null = null;
   private mode: Mode = "idle";
   private stepCount = 0;
   private subStep = 0;
@@ -67,8 +72,7 @@ class SimulationEngine {
    * edits, and never to individual sub-steps within a year. */
   private history: AbundancePoint[] = [];
 
-  constructor(model: NCAModel) {
-    this.model = model;
+  constructor() {
     this.snapshotCache = this.buildSnapshot();
   }
 
@@ -141,7 +145,7 @@ class SimulationEngine {
         if (cells) cells.push({ row, col });
         else bySpecies.set(species, [{ row, col }]);
       }
-      const blurSteps = this.model.introductionBlurSteps ?? 0;
+      const blurSteps = this.model?.introductionBlurSteps ?? 0;
       const peak = gaussianImpulsePeak(blurSteps);
       for (const [species, cells] of bySpecies) {
         const mask = new Float32Array(gridH * gridW);
@@ -183,10 +187,12 @@ class SimulationEngine {
    * and only then swaps land_mask/abiotic — once stepsPerYear sub-steps have
    * accumulated. */
   private advanceSubStep(): void {
-    const next = this.model.step(gridStore.getSimState(), this.ctx());
+    const model = this.model;
+    if (!model) return; // ticker only ever starts once step()/run() confirmed a model is loaded
+    const next = model.step(gridStore.getSimState(), this.ctx());
     gridStore.setSimState(next); // notify() -> canvas redraws this sub-step's frame
     this.subStep++;
-    if (this.subStep >= this.model.stepsPerYear) {
+    if (this.subStep >= model.stepsPerYear) {
       this.subStep = 0;
       this.stepCount++;
       const year = gridStore.yearStart + this.stepCount;
@@ -221,14 +227,14 @@ class SimulationEngine {
    * taking the "reset point" snapshot first if none exists yet. No-op while
    * already running or mid-step. */
   step(): void {
-    if (this.mode !== "idle") return;
+    if (this.mode !== "idle" || !this.model) return;
     this.ensureStarted();
     this.startTicker("stepping");
     this.notify();
   }
 
   run(): void {
-    if (this.mode !== "idle") return;
+    if (this.mode !== "idle" || !this.model) return;
     this.ensureStarted();
     this.startTicker("playing");
     this.notify();
@@ -300,10 +306,9 @@ class SimulationEngine {
       isStepping: this.mode === "stepping",
       stepCount: this.stepCount,
       subStep: this.subStep,
-      stepsPerYear: this.model.stepsPerYear,
+      stepsPerYear: this.model?.stepsPerYear ?? 1,
       speedSubStepsPerSec: this.speedSubStepsPerSec,
-      modelId: this.model.id,
-      isPlaceholder: this.model.isPlaceholder,
+      modelId: this.model?.id ?? "",
       history: this.history,
     };
   }
@@ -314,5 +319,6 @@ class SimulationEngine {
   }
 }
 
-/** Singleton — swap placeholderDiffusionModel for the real ported model here later. */
-export const simulationEngine = new SimulationEngine(placeholderDiffusionModel);
+/** Singleton — model starts unset; App.tsx's load effect calls setModel()
+ * once a trained model has been fetched. */
+export const simulationEngine = new SimulationEngine();

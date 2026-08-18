@@ -13,7 +13,6 @@ import { SuitabilityChart } from "./ui/SuitabilityChart";
 import { ModelSelector, type ModelOption } from "./ui/ModelSelector";
 import { IslandMark, WarningIcon } from "./ui/icons";
 import { simulationEngine } from "./sim/engine";
-import { placeholderDiffusionModel } from "./sim/placeholderModel";
 import { RealNeuralLandscapeModel } from "./sim/realModel";
 import type { IntroductionEvent, IslandBundle, OccurrenceEvent } from "./manifest/types";
 
@@ -65,11 +64,7 @@ function ModelStatusBanner() {
     (cb) => simulationEngine.subscribe(cb),
     () => simulationEngine.getSnapshot()
   );
-  return snapshot.isPlaceholder ? (
-    <span>Placeholder simulation ({snapshot.modelId}) — not the trained model.</span>
-  ) : (
-    <span>Trained model: {snapshot.modelId}.</span>
-  );
+  return <span>Trained model: {snapshot.modelId}.</span>;
 }
 
 export default function App() {
@@ -121,37 +116,43 @@ export default function App() {
         occurrences
       );
 
-      const modelOptions: ModelOption[] = [
-        { id: placeholderDiffusionModel.id, label: "Placeholder (diffusion)", model: placeholderDiffusionModel },
+      // Two checkpoints from the same training run (outputs/surtsey_NO_detection_history):
+      // nl_model.pt (final weights at the end of training) and nl_model_best.pt
+      // (lowest-loss checkpoint, which landed just before the 5k-step scheduled-
+      // sampling warmup finished). No placeholder/fallback model — a checkpoint's
+      // species set must exactly match this world bundle's (same order, same
+      // count) for the channel shapes to line up; missing or mismatched is
+      // simply "not offered," but at least one must load or there's nothing to
+      // simulate.
+      const modelSpecs = [
+        { path: "model/no_detection_history_final", label: "No Detection History", isDefault: false },
+        { path: "model/no_detection_history", label: "No Detection History after 5k Warmup", isDefault: true },
       ];
-
-      // The trained model is optional — its weight files may not exist yet
-      // for every deployment, and its species set must exactly match this
-      // world bundle's (same order, same count) for the channel shapes to
-      // line up. Missing or mismatched is not an error, just "not offered."
-      try {
-        const realModel = await RealNeuralLandscapeModel.load(
-          `${import.meta.env.BASE_URL}model/no_detection_history`
-        );
-        const matches =
-          realModel.speciesNames.length === manifest.speciesNames.length &&
-          realModel.speciesNames.every((name, i) => name === manifest.speciesNames[i]);
-        if (matches) {
-          modelOptions.push({
-            id: realModel.id,
-            label: `Trained model (${realModel.id})`,
-            model: realModel,
-          });
-          simulationEngine.setModel(realModel); // default to the real model when available
-        } else {
-          console.warn(
-            "Trained model species do not match the world bundle's — not offering it.",
-            { model: realModel.speciesNames, world: manifest.speciesNames }
-          );
+      const modelOptions: ModelOption[] = [];
+      let defaultModel: RealNeuralLandscapeModel | null = null;
+      for (const spec of modelSpecs) {
+        try {
+          const realModel = await RealNeuralLandscapeModel.load(`${import.meta.env.BASE_URL}${spec.path}`);
+          const matches =
+            realModel.speciesNames.length === manifest.speciesNames.length &&
+            realModel.speciesNames.every((name, i) => name === manifest.speciesNames[i]);
+          if (matches) {
+            modelOptions.push({ id: realModel.id, label: spec.label, model: realModel });
+            if (spec.isDefault) defaultModel = realModel;
+          } else {
+            console.warn(
+              "Trained model species do not match the world bundle's — not offering it.",
+              { model: realModel.speciesNames, world: manifest.speciesNames, path: spec.path }
+            );
+          }
+        } catch (err) {
+          console.warn(`Could not load model at ${spec.path}.`, err);
         }
-      } catch (err) {
-        console.warn("No trained model available, using the placeholder only.", err);
       }
+      if (modelOptions.length === 0) {
+        throw new Error("No trained model could be loaded.");
+      }
+      simulationEngine.setModel(defaultModel ?? modelOptions[0].model);
 
       return { manifest, modelOptions };
     }

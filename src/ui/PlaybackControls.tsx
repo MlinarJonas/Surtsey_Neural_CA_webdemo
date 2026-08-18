@@ -46,11 +46,6 @@ export function PlaybackControls() {
           works — a hand-placed species won't be reset by the schedule.
         </p>
       )}
-      {snapshot.isPlaceholder && (
-        <p className="placeholder-warning">
-          Placeholder rule ({snapshot.modelId}) — not the trained ecological model.
-        </p>
-      )}
       <div className="tool-group" role="group" aria-label="Playback">
         <button type="button" disabled={busy} onClick={() => simulationEngine.step()}>
           <StepIcon />

@@ -54,7 +54,6 @@ export interface RealModelManifest {
  */
 export class RealNeuralLandscapeModel implements NCAModel {
   readonly id: string;
-  readonly isPlaceholder = false;
   readonly stepsPerYear: number;
 
   private readonly manifest: RealModelManifest;
