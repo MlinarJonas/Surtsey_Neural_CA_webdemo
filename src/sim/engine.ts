@@ -38,6 +38,9 @@ export interface EngineSnapshot {
    * renders playback UI after App.tsx has already called setModel() with a
    * loaded trained model, so this is only user-visible transiently, if ever. */
   modelId: string;
+  /** See NCAModel.requiresHistoricalMode. False whenever no model has been
+   * selected yet. */
+  requiresHistoricalMode: boolean;
   history: AbundancePoint[];
 }
 
@@ -176,10 +179,21 @@ class SimulationEngine {
     const current = gridStore.getSimState();
     const seeded = this.applyIntroductions(current, gridStore.yearStart);
     if (seeded !== current) gridStore.setSimState(seeded);
+    this.applyDetHistory(gridStore.yearStart);
     gridStore.snapshotInitialCondition();
     const state = gridStore.getSimState();
     const { extent, abioticSum } = this.computeExtentAndAbioticSum(state);
     this.history = [{ step: 0, abundance: this.computeAbundance(state), extent, abioticSum }];
+  }
+
+  /** Swaps in the active model's precomputed real detection-history field for
+   * the given year, if it has one (NCAModel.getDetHistoryForYear) — a no-op
+   * for models without one, which leaves gridStore.detectionHistory exactly
+   * as step() last returned it (all-zero passthrough, for models that ignore
+   * the channel entirely). */
+  private applyDetHistory(year: number): void {
+    const detHist = this.model?.getDetHistoryForYear?.(year);
+    if (detHist) gridStore.detectionHistory = detHist;
   }
 
   /** Runs exactly one model.step() (one sub-step), using the current year's
@@ -199,6 +213,11 @@ class SimulationEngine {
       gridStore.setYear(year);
       const injected = this.applyIntroductions(next, year);
       if (injected !== next) gridStore.setSimState(injected);
+      // Must run AFTER setSimState above — setSimState overwrites
+      // detectionHistory wholesale (it passes SimState.detectionHistory
+      // through unchanged from before this substep), which would clobber
+      // this year's freshly looked-up value if applied first.
+      this.applyDetHistory(year);
       const { extent, abioticSum } = this.computeExtentAndAbioticSum(injected);
       this.history.push({ step: this.stepCount, abundance: this.computeAbundance(injected), extent, abioticSum });
       if (this.mode === "stepping") {
@@ -272,7 +291,12 @@ class SimulationEngine {
   /** Switches the active model. Pauses playback and starts a fresh run (step
    * counter, sub-step, history, and year all reset) but deliberately keeps
    * whatever is currently painted — "restart the simulation using a different
-   * rule from the same starting point," not "wipe the canvas." */
+   * rule from the same starting point," not "wipe the canvas." Forces
+   * Historical mode on when the new model requires it (PlaybackControls
+   * disables the Sandbox button for the same reason, so the user can't
+   * switch back out while it's active) — never forces it back off when
+   * switching to a model that doesn't require it, so the user's own choice
+   * of mode survives an unrelated model switch. */
   setModel(model: NCAModel): void {
     this.pause();
     this.model = model;
@@ -281,6 +305,7 @@ class SimulationEngine {
     gridStore.setYear(gridStore.yearStart);
     gridStore.clearInitialSnapshot();
     this.history = [];
+    if (model.requiresHistoricalMode) useUIStore.getState().setHistoricalMode(true);
     this.notify();
   }
 
@@ -309,6 +334,7 @@ class SimulationEngine {
       stepsPerYear: this.model?.stepsPerYear ?? 1,
       speedSubStepsPerSec: this.speedSubStepsPerSec,
       modelId: this.model?.id ?? "",
+      requiresHistoricalMode: this.model?.requiresHistoricalMode ?? false,
       history: this.history,
     };
   }

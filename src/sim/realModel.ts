@@ -31,6 +31,13 @@ export interface RealModelManifest {
   /** See NCAModel.introductionBlurSteps. Optional only defensively, against a
    * stale un-re-exported model.json — every current export includes it. */
   introductionBlurSteps?: number;
+  /** First year and length of the precomputed det_history.bin timeseries this
+   * checkpoint ships (see web/export/export_model_bundle.py) — 0 nYears (or
+   * the fields being absent, against a stale un-re-exported model.json) means
+   * no det_history.bin exists and useDetectionHistory-consuming models simply
+   * won't have real detection-history input available. */
+  detHistoryYearStart?: number;
+  detHistoryNYears?: number;
   /** Consecutive model calls per simulated year, land_mask/abiotic held fixed
    * across all of them. Optional only defensively, against a stale un-re-exported
    * model.json — every current export includes it. */
@@ -61,6 +68,13 @@ export class RealNeuralLandscapeModel implements NCAModel {
   private readonly conv1Bias: Float32Array; // (hiddenSize,)
   private readonly conv2Weight: Float32Array; // (nSpecies, hiddenSize)
   private readonly sobel: SobelKernels; // shared: abiotic/biotic/proximity all use perceptionKernelSize
+  /** Precomputed real detection-history record, year-major then species-major
+   * (uint8, 0-255 -> [0,1]), or null when this checkpoint doesn't ship one
+   * (see web/export/export_model_bundle.py's det_history.bin). The real
+   * record is entirely determined by the historical CSV — no model state or
+   * randomness involved — so it's exported once and looked up per year
+   * rather than simulated live. */
+  private readonly detHistory: Uint8Array | null;
 
   /** The exact species this checkpoint's channels correspond to, in order —
    * callers must verify this matches the world bundle's speciesNames before
@@ -74,18 +88,29 @@ export class RealNeuralLandscapeModel implements NCAModel {
     return this.manifest.introductionBlurSteps ?? 0;
   }
 
+  /** True when this model has a real detection-history record to draw on —
+   * it was trained expecting a real, growing detection signal, which only
+   * exists along the actual historical timeline, so Sandbox play (an
+   * arbitrary painted scenario with no corresponding survey record) isn't a
+   * meaningful mode for it. */
+  get requiresHistoricalMode(): boolean {
+    return this.detHistory !== null;
+  }
+
   private constructor(
     manifest: RealModelManifest,
     conv1Weight: Float32Array,
     conv1Bias: Float32Array,
     conv2Weight: Float32Array,
-    sobel: SobelKernels
+    sobel: SobelKernels,
+    detHistory: Uint8Array | null
   ) {
     this.manifest = manifest;
     this.conv1Weight = conv1Weight;
     this.conv1Bias = conv1Bias;
     this.conv2Weight = conv2Weight;
     this.sobel = sobel;
+    this.detHistory = detHistory;
     this.id = manifest.modelId;
     this.stepsPerYear = manifest.ncaStepsPerInterval ?? 1;
   }
@@ -93,7 +118,9 @@ export class RealNeuralLandscapeModel implements NCAModel {
   /** Fetches the manifest + weights from a URL (browser runtime path). Callers
    * should pass a path prefixed with import.meta.env.BASE_URL — a hardcoded
    * absolute path resolves to the domain root, not the deployed base path
-   * (this bit a GitHub Pages project-site deploy once already). */
+   * (this bit a GitHub Pages project-site deploy once already). det_history.bin
+   * is fetched only when the manifest says it exists (detHistoryNYears > 0) —
+   * most checkpoints don't ship one. */
   static async load(baseUrl = `${import.meta.env.BASE_URL}model`): Promise<RealNeuralLandscapeModel> {
     const [manifest, conv1WeightBuf, conv1BiasBuf, conv2WeightBuf] = await Promise.all([
       fetch(`${baseUrl}/model.json`).then((r) => {
@@ -104,11 +131,20 @@ export class RealNeuralLandscapeModel implements NCAModel {
       fetch(`${baseUrl}/conv1_bias.bin`).then((r) => r.arrayBuffer()),
       fetch(`${baseUrl}/conv2_weight.bin`).then((r) => r.arrayBuffer()),
     ]);
+    let detHistory: Uint8Array | null = null;
+    if ((manifest.detHistoryNYears ?? 0) > 0) {
+      const buf = await fetch(`${baseUrl}/det_history.bin`).then((r) => {
+        if (!r.ok) throw new Error(`det_history.bin: ${r.status} ${r.statusText}`);
+        return r.arrayBuffer();
+      });
+      detHistory = new Uint8Array(buf);
+    }
     return RealNeuralLandscapeModel.fromBuffers(
       manifest,
       new Float32Array(conv1WeightBuf),
       new Float32Array(conv1BiasBuf),
-      new Float32Array(conv2WeightBuf)
+      new Float32Array(conv2WeightBuf),
+      detHistory
     );
   }
 
@@ -118,10 +154,35 @@ export class RealNeuralLandscapeModel implements NCAModel {
     manifest: RealModelManifest,
     conv1Weight: Float32Array,
     conv1Bias: Float32Array,
-    conv2Weight: Float32Array
+    conv2Weight: Float32Array,
+    detHistory: Uint8Array | null = null
   ): RealNeuralLandscapeModel {
     const sobel = createSobelKernels(manifest.perceptionKernelSize);
-    return new RealNeuralLandscapeModel(manifest, conv1Weight, conv1Bias, conv2Weight, sobel);
+    return new RealNeuralLandscapeModel(manifest, conv1Weight, conv1Bias, conv2Weight, sobel, detHistory);
+  }
+
+  /** Looks up the precomputed real detection-history field for a given
+   * calendar year, converted from its uint8 storage back to [0,1] floats —
+   * one Float32Array per species, ready to drop straight into
+   * SimState.detectionHistory. Returns null when this checkpoint has no
+   * det_history.bin (requiresHistoricalMode is false) or the year falls
+   * outside the exported range. */
+  getDetHistoryForYear(year: number): Float32Array[] | null {
+    const detHistory = this.detHistory;
+    if (!detHistory) return null;
+    const yearStart = this.manifest.detHistoryYearStart ?? 0;
+    const nYears = this.manifest.detHistoryNYears ?? 0;
+    const idx = year - yearStart;
+    if (idx < 0 || idx >= nYears) return null;
+    const { gridH, gridW, nSpecies } = this.manifest;
+    const cells = gridH * gridW;
+    const yearOffset = idx * nSpecies * cells;
+    return Array.from({ length: nSpecies }, (_, s) => {
+      const out = new Float32Array(cells);
+      const base = yearOffset + s * cells;
+      for (let i = 0; i < cells; i++) out[i] = detHistory[base + i] / 255;
+      return out;
+    });
   }
 
   step(state: SimState, ctx: GridContext): SimState {

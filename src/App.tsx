@@ -116,17 +116,23 @@ export default function App() {
         occurrences
       );
 
-      // Two checkpoints from the same training run (outputs/surtsey_NO_detection_history):
-      // nl_model.pt (final weights at the end of training) and nl_model_best.pt
-      // (lowest-loss checkpoint, which landed just before the 5k-step scheduled-
-      // sampling warmup finished). No placeholder/fallback model — a checkpoint's
-      // species set must exactly match this world bundle's (same order, same
-      // count) for the channel shapes to line up; missing or mismatched is
-      // simply "not offered," but at least one must load or there's nothing to
-      // simulate.
+      // Three checkpoints, all paired ablations on the same Surtsey run (same
+      // species, same abiotic channels, same grid): two from
+      // outputs/surtsey_NO_detection_history (nl_model.pt, the final weights,
+      // and nl_model_best.pt, the lowest-loss checkpoint — landed just before
+      // the 5k-step scheduled-sampling warmup finished), and one from
+      // outputs/Surtsey_WITH_detection_history, which ships a precomputed
+      // real detection-history record (web/export/export_model_bundle.py's
+      // det_history.bin) and is therefore Historical-mode-only — see
+      // NCAModel.requiresHistoricalMode. No placeholder/fallback model — a
+      // checkpoint's species set must exactly match this world bundle's (same
+      // order, same count) for the channel shapes to line up; missing or
+      // mismatched is simply "not offered," but at least one must load or
+      // there's nothing to simulate.
       const modelSpecs = [
         { path: "model/no_detection_history_final", label: "No Detection History", isDefault: false },
         { path: "model/no_detection_history", label: "No Detection History after 5k Warmup", isDefault: true },
+        { path: "model/with_detection_history", label: "With Detection History", isDefault: false },
       ];
       const modelOptions: ModelOption[] = [];
       let defaultModel: RealNeuralLandscapeModel | null = null;

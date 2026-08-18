@@ -26,6 +26,12 @@ export function PlaybackControls() {
             type="button"
             className={historicalMode ? "" : "selected"}
             aria-pressed={!historicalMode}
+            disabled={snapshot.requiresHistoricalMode}
+            title={
+              snapshot.requiresHistoricalMode
+                ? `${snapshot.modelId} was trained on the real detection-history record — it only runs in Historical mode.`
+                : undefined
+            }
             onClick={() => setHistoricalMode(false)}
           >
             Sandbox

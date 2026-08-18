@@ -8,7 +8,7 @@ export interface GridContext {
   /** Current-year mask, row-major length gridH * gridW. 1 = land, 0 = ocean. */
   landMask: Uint8Array;
   /** Current-year abiotic channels (static + that year's varying channels,
-   * normalized [0,1]), in model input order. Ignored by the placeholder model. */
+   * normalized [0,1]), in model input order. */
   abiotic: Float32Array[];
 }
 
@@ -34,6 +34,18 @@ export interface NCAModel {
    * Undefined/0 = no blur, i.e. a hard single-cell set (the placeholder
    * model's implicit default). */
   readonly introductionBlurSteps?: number;
+  /** True when this model was trained on a real, growing detection-history
+   * signal that only exists along the actual historical timeline — the
+   * engine disables Sandbox mode while such a model is active (see
+   * getDetHistoryForYear). Undefined/false = no constraint. */
+  readonly requiresHistoricalMode?: boolean;
+  /** Looks up the precomputed real detection-history field for a given
+   * calendar year (one Float32Array per species, [0,1]), or null if this
+   * model has none for that year — the engine falls back to leaving
+   * SimState.detectionHistory untouched in that case. The real record is
+   * fixed by the historical CSV alone (no model state or randomness), so
+   * it's a lookup, not something computed live. */
+  getDetHistoryForYear?(year: number): Float32Array[] | null;
   /** Computes one update step. Must return a new SimState rather than
    * mutating the input in place — the engine owns snapshot/reset lifecycle. */
   step(state: SimState, ctx: GridContext): SimState;
