@@ -28,6 +28,13 @@ export interface NCAModel {
    * scenario rollout, all of which loop nca_steps_per_interval times per
    * snapshot before advancing to the next year's context). Not always 1. */
   readonly stepsPerYear: number;
+  /** Blur iterations the engine applies to a Historical-mode introduction
+   * point before merging it into biotic (see sim/conv.ts's
+   * repeatedGaussianBlurZero + gaussianImpulsePeak) — matches
+   * src/nca/utils.py's blur_field(), the same seeding run_prediction.py uses.
+   * Undefined/0 = no blur, i.e. a hard single-cell set (the placeholder
+   * model's implicit default). */
+  readonly introductionBlurSteps?: number;
   /** Computes one update step. Must return a new SimState rather than
    * mutating the input in place — the engine owns snapshot/reset lifecycle. */
   step(state: SimState, ctx: GridContext): SimState;

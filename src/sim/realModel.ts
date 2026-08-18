@@ -28,6 +28,9 @@ export interface RealModelManifest {
   primaryColonisation: boolean;
   aliveMaskTrainingOnly: boolean;
   perceptionSize: number;
+  /** See NCAModel.introductionBlurSteps. Optional only defensively, against a
+   * stale un-re-exported model.json — every current export includes it. */
+  introductionBlurSteps?: number;
   /** Consecutive model calls per simulated year, land_mask/abiotic held fixed
    * across all of them. Optional only defensively, against a stale un-re-exported
    * model.json — every current export includes it. */
@@ -66,6 +69,10 @@ export class RealNeuralLandscapeModel implements NCAModel {
    * gridStore's biotic channels. */
   get speciesNames(): readonly string[] {
     return this.manifest.speciesNames;
+  }
+
+  get introductionBlurSteps(): number {
+    return this.manifest.introductionBlurSteps ?? 0;
   }
 
   private constructor(

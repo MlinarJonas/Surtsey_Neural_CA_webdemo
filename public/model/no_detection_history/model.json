@@ -23,5 +23,6 @@
   "primaryColonisation": true,
   "aliveMaskTrainingOnly": false,
   "perceptionSize": 41,
+  "introductionBlurSteps": 3,
   "ncaStepsPerInterval": 16
 }

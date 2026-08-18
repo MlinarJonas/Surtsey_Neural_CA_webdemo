@@ -1,6 +1,7 @@
 import { gridStore } from "../state/gridStore";
 import { useUIStore } from "../state/uiStore";
 import { placeholderDiffusionModel } from "./placeholderModel";
+import { gaussianImpulsePeak, repeatedGaussianBlurZero } from "./conv";
 import type { GridContext, NCAModel, SimState } from "./types";
 
 export interface AbundancePoint {
@@ -113,10 +114,16 @@ class SimulationEngine {
 
   /** In Historical mode, zeroes any species not yet introduced (real schedule
    * or a manual paint, whichever came first — see gridStore.manuallyActivated)
-   * and injects that year's scheduled events at full value, single-cell (no
-   * positional-uncertainty blur, unlike the Python training pipeline — this
-   * is a display of the actual recorded coordinate, not a training signal).
-   * A no-op, returning state unchanged, whenever Historical mode is off. */
+   * and injects that year's scheduled events exactly as run_prediction.py /
+   * training do: all of a species' events for the year are combined into one
+   * 0/1 mask, blurred by the active model's introductionBlurSteps (zero-padded
+   * 3x3 Gaussian, matching src/nca/utils.py's blur_field — positional-
+   * uncertainty spread, not the replicate padding perceive()/proximity use),
+   * renormalized so an isolated point still peaks at 1.0, and merged into
+   * biotic via elementwise max (so landing inside an already-occupied area
+   * never erases it). With introductionBlurSteps 0 or undefined (e.g. the
+   * placeholder model) this degenerates to the old hard single-cell set. A
+   * no-op, returning state unchanged, whenever Historical mode is off. */
   private applyIntroductions(state: SimState, year: number): SimState {
     if (!useUIStore.getState().historicalMode) return state;
     const biotic = state.biotic.map((ch) => ch.slice());
@@ -127,9 +134,26 @@ class SimulationEngine {
     }
     const events = gridStore.introductionsByYear.get(year);
     if (events) {
+      const { gridH, gridW } = gridStore;
+      const bySpecies = new Map<number, Array<{ row: number; col: number }>>();
       for (const { species, row, col } of events) {
-        const idx = row * gridStore.gridW + col;
-        if (gridStore.landMask[idx] === 1) biotic[species][idx] = 1.0;
+        const cells = bySpecies.get(species);
+        if (cells) cells.push({ row, col });
+        else bySpecies.set(species, [{ row, col }]);
+      }
+      const blurSteps = this.model.introductionBlurSteps ?? 0;
+      const peak = gaussianImpulsePeak(blurSteps);
+      for (const [species, cells] of bySpecies) {
+        const mask = new Float32Array(gridH * gridW);
+        for (const { row, col } of cells) mask[row * gridW + col] = 1.0;
+        const field = repeatedGaussianBlurZero(mask, gridH, gridW, blurSteps);
+        const target = biotic[species];
+        for (let i = 0; i < field.length; i++) {
+          let v = field[i] / peak;
+          if (v < 0) v = 0;
+          else if (v > 1) v = 1;
+          if (v > target[i]) target[i] = v;
+        }
       }
     }
     return { biotic, detectionHistory: state.detectionHistory };

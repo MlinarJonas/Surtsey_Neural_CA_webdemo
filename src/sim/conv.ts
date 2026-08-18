@@ -104,6 +104,73 @@ export function repeatedGaussianBlur(
   return x;
 }
 
+/** Cross-correlation with zero padding, matching utils.py's blur_field()
+ * (F.conv2d(..., padding=1) — PyTorch's default zero padding, NOT the
+ * replicate padding perceive()/_compute_proximity use). Out-of-bounds taps
+ * contribute 0 rather than the edge value. */
+export function convolve2DZero(
+  channel: Float32Array,
+  gridH: number,
+  gridW: number,
+  kernel: Float32Array,
+  kernelSize: number
+): Float32Array {
+  const pad = Math.floor(kernelSize / 2);
+  const out = new Float32Array(gridH * gridW);
+  for (let row = 0; row < gridH; row++) {
+    for (let col = 0; col < gridW; col++) {
+      let sum = 0;
+      for (let kr = 0; kr < kernelSize; kr++) {
+        const sr = row + kr - pad;
+        if (sr < 0 || sr >= gridH) continue;
+        const rowOffset = sr * gridW;
+        const kRowOffset = kr * kernelSize;
+        for (let kc = 0; kc < kernelSize; kc++) {
+          const sc = col + kc - pad;
+          if (sc < 0 || sc >= gridW) continue;
+          sum += channel[rowOffset + sc] * kernel[kRowOffset + kc];
+        }
+      }
+      out[row * gridW + col] = sum;
+    }
+  }
+  return out;
+}
+
+/** Repeated 3x3 Gaussian blur (zero padding), matching utils.py's blur_field()
+ * — used for Historical-mode introduction seeding, not perception/proximity. */
+export function repeatedGaussianBlurZero(
+  channel: Float32Array,
+  gridH: number,
+  gridW: number,
+  steps: number
+): Float32Array {
+  let x = channel;
+  for (let i = 0; i < steps; i++) {
+    x = convolve2DZero(x, gridH, gridW, GAUSSIAN_3X3, 3);
+  }
+  return x;
+}
+
+/** Peak value remaining after blurring an isolated unit impulse `steps` times,
+ * matching utils.py's impulse_peak() exactly (same (2*steps+3)-square,
+ * zero-padded convolution). Callers normalize a blurred introduction point by
+ * this factor so an isolated point still peaks at 1.0 — dividing by the
+ * field's own max would instead normalize a lone point against an unrelated
+ * cluster's peak. Returns 1.0 for steps <= 0 (no blur applied). */
+export function gaussianImpulsePeak(steps: number): number {
+  if (steps <= 0) return 1.0;
+  const size = 2 * steps + 3;
+  let imp: Float32Array = new Float32Array(size * size);
+  imp[Math.floor(size / 2) * size + Math.floor(size / 2)] = 1.0;
+  for (let i = 0; i < steps; i++) {
+    imp = convolve2DZero(imp, size, size, GAUSSIAN_3X3, 3);
+  }
+  let max = 0;
+  for (const v of imp) if (v > max) max = v;
+  return max;
+}
+
 /** Max-pool with out-of-bounds cells excluded from the window (equivalent to
  * PyTorch's -infinity pool padding whenever all real values are >= 0, which
  * biotic always is here) — matches NeuralLandscape.alive_mask(). */
